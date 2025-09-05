@@ -1,4 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:doctor_app/constants.dart';
+import 'package:doctor_app/guide.dart';
+import 'package:doctor_app/patient_list.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'login.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,45 +17,59 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+
+      home: FutureBuilder<Widget>(
+        future: _getInitialScreen(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } else if (snapshot.hasError) {
+            return const Scaffold(
+              body: Center(child: Text("Error checking login status")),
+            );
+          } else if (snapshot.hasData) {
+            return snapshot.data!;
+          } else {
+            return const LoginScreen();
+          }
+        },
+      ),
     );
+  }
+
+  Future<Widget> _getInitialScreen() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    String? xServer = prefs.getString('X-Tenant');
+    bool isGotToken = xServer != null && xServer.isNotEmpty;
+
+    String? xMedsoftServer = prefs.getString('X-Medsoft-Token');
+    bool isGotMedsoftToken =
+        xMedsoftServer != null && xMedsoftServer.isNotEmpty;
+
+    String? username = prefs.getString('Username');
+    bool isGotUsername = username != null && username.isNotEmpty;
+
+    if (isLoggedIn && isGotToken && isGotMedsoftToken && isGotUsername) {
+      return const MyHomePage(title: 'Дуудлагын жагсаалт');
+    } else {
+      return const LoginScreen();
+    }
   }
 }
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
 
   final String title;
 
@@ -53,70 +77,341 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
+  late String _displayText = '';
+  String _liveLocation = "Fetching live location...";
+  final List<String> _locationHistory = [];
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+  String? username;
 
-  void _incrementCounter() {
+  static const platform = MethodChannel(
+    'com.example.doctor_app/location',
+  );
+
+  final GlobalKey<PatientListScreenState> _patientListKey =
+      GlobalKey<PatientListScreenState>();
+
+  static const String xToken = Constants.xToken;
+  Map<String, dynamic> sharedPreferencesData = {};
+
+  late AnimationController _animationController;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+  bool _isLocationSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeNotifications();
+    platform.setMethodCallHandler(_methodCallHandler);
+    _sendXTokenToAppDelegate();
+    _loadSharedPreferencesData();
+    _sendXServerToAppDelegate();
+    _sendXMedsoftTokenToAppDelegate();
+    // _startLocationTracking();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 500),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: Offset(0, 1),
+      end: Offset(0, 0),
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 0.8).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  Future<void> _startLocationTracking() async {
+    try {
+      await platform.invokeMethod('startLocationManagerAfterLogin');
+    } on PlatformException catch (e) {
+      debugPrint("Error starting location manager: $e");
+    }
+  }
+
+  Future<void> _sendXServerToAppDelegate() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    try {
+      await platform.invokeMethod('sendXServerToAppDelegate', {
+        'xServer': prefs.getString('X-Tenant'),
+      });
+    } on PlatformException catch (e) {
+      debugPrint("Failed to send xToken to AppDelegate: '${e.message}'.");
+    }
+  }
+
+  Future<void> _sendXMedsoftTokenToAppDelegate() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    try {
+      await platform.invokeMethod('sendXMedsoftTokenToAppDelegate', {
+        'xMedsoftToken': prefs.getString('X-Medsoft-Token'),
+      });
+    } on PlatformException catch (e) {
+      debugPrint("Failed to send xToken to AppDelegate: '${e.message}'.");
+    }
+  }
+
+  Future<void> _getInitialScreenString() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    String? xServer = prefs.getString('X-Tenant');
+    bool isGotToken = xServer != null && xServer.isNotEmpty;
+
+    String? xMedsoftServer = prefs.getString('X-Medsoft-Token');
+    bool isGotMedsoftToken =
+        xMedsoftServer != null && xMedsoftServer.isNotEmpty;
+
+    String? username = prefs.getString('Username');
+    bool isGotUsername = username != null && username.isNotEmpty;
+
+    _displayText =
+        'isLoggedIn: $isLoggedIn, isGotToken: $isGotToken, isGotMedsoftToken: $isGotMedsoftToken, isGotUsername: $isGotUsername';
+
+    if (isLoggedIn && isGotToken && isGotMedsoftToken && isGotUsername) {
+      debugPrint(
+        'isLoggedIn: $isLoggedIn, isGotToken: $isGotToken, isGotMedsoftToken: $isGotMedsoftToken, isGotUsername: $isGotUsername',
+      );
+    } else {
+      return debugPrint("empty shared");
+    }
+  }
+
+  Future<void> _loadSharedPreferencesData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> data = {};
+
+    Set<String> allKeys = prefs.getKeys();
+    for (String key in allKeys) {
+      if (key == 'isLoggedIn' || key == 'arrivedInFifty') {
+        data[key] = prefs.getBool(key);
+      } else {
+        data[key] = prefs.getString(key) ?? 'null';
+      }
+    }
+
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      username = prefs.getString('Username');
+      sharedPreferencesData = data;
     });
+  }
+
+  void _initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('app_icon');
+
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  Future<void> _methodCallHandler(MethodCall call) async {
+    if (call.method == 'updateLocation') {
+      final locationData = call.arguments as Map;
+      final latitude = locationData['latitude'];
+      final longitude = locationData['longitude'];
+
+      setState(() {
+        _liveLocation =
+            "Сүүлд илгээсэн байршил\nУртраг: $longitude\nӨргөрөг: $latitude";
+        _addLocationToHistory(latitude, longitude);
+      });
+    } else if (call.method == 'navigateToLogin') {
+      _logOut();
+      _showNotification();
+    }
+  }
+
+  Future<void> _showNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'your_channel_id',
+          'your_channel_name',
+          channelDescription: 'Your channel description',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: false,
+        );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails(badgeNumber: 1);
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Системээс гарсан байна.',
+      'Ахин нэвтэрнэ үү.',
+      platformChannelSpecifics,
+      payload: 'item x',
+    );
+  }
+
+  Future<void> _sendLocationByButton() async {
+    try {
+      await platform.invokeMethod('sendLocationToAPIByButton');
+
+      setState(() {
+        _isLocationSent = true;
+      });
+
+      _animationController.forward();
+
+      await Future.delayed(Duration(seconds: 2));
+
+      setState(() {
+        _isLocationSent = false;
+      });
+      _animationController.reverse();
+    } on PlatformException catch (e) {
+      debugPrint("Failed to send xToken to AppDelegate: '${e.message}'.");
+    }
+  }
+
+  Future<void> _sendXTokenToAppDelegate() async {
+    try {
+      await platform.invokeMethod('sendXTokenToAppDelegate', {
+        'xToken': xToken,
+      });
+    } on PlatformException catch (e) {
+      debugPrint("Failed to send xToken to AppDelegate: '${e.message}'.");
+    }
+  }
+
+  void _addLocationToHistory(double latitude, double longitude) {
+    String newLocation = "Уртраг: $longitude\nӨргөрөг: $latitude";
+
+    if (_locationHistory.length >= 9) {
+      _locationHistory.removeAt(0);
+    }
+
+    setState(() {
+      _locationHistory.add(newLocation);
+    });
+  }
+
+  void _logOut() async {
+    debugPrint("Entered _logOut");
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('isLoggedIn');
+    await prefs.remove('X-Tenant');
+    await prefs.remove('X-Medsoft-Token');
+    await prefs.remove('Username');
+
+    try {
+      await platform.invokeMethod('stopLocationUpdates');
+    } on PlatformException catch (e) {
+      debugPrint("Failed to stop location updates: '${e.message}'.");
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
+        backgroundColor: Color(0xFF00CCCC),
         title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              _patientListKey.currentState?.refreshPatients();
+            },
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      drawer: Drawer(
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Color.fromARGB(255, 236, 169, 175),
+              ),
+              child: Center(
+                child: Image.asset(
+                  'assets/icon/locationlogologin.png',
+                  width: 150,
+                  height: 150,
+                ),
+              ),
             ),
+            ListTile(
+              title: Center(
+                child: Text(
+                  username ?? 'Guest',
+                  style: TextStyle(fontSize: 20),
+                ),
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              leading: Icon(Icons.info_outline, color: Colors.blueAccent),
+              title: Text('Хэрэглэх заавар', style: TextStyle(fontSize: 18)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => GuideScreen()),
+                );
+              },
+            ),
+            Spacer(),
+            Container(
+              margin: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 217, 83, 96),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ListTile(
+                title: Center(
+                  child: const Text(
+                    'Гарах',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                onTap: () {
+                  _logOut();
+                },
+              ),
+            ),
+            SizedBox(height: 50),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      body: PatientListScreen(key: _patientListKey),
     );
   }
 }
