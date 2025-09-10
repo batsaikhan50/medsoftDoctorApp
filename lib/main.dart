@@ -85,9 +85,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       FlutterLocalNotificationsPlugin();
   String? username;
 
-  static const platform = MethodChannel(
-    'com.example.doctor_app/location',
-  );
+  static const platform = MethodChannel('com.example.doctor_app/location');
 
   final GlobalKey<PatientListScreenState> _patientListKey =
       GlobalKey<PatientListScreenState>();
@@ -105,59 +103,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     super.initState();
     _initializeNotifications();
     platform.setMethodCallHandler(_methodCallHandler);
-    _sendXTokenToAppDelegate();
     _loadSharedPreferencesData();
-    _sendXServerToAppDelegate();
-    _sendXMedsoftTokenToAppDelegate();
-    // _startLocationTracking();
 
     _animationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 500),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: Offset(0, 1),
-      end: Offset(0, 0),
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
+    _slideAnimation = Tween<Offset>(begin: Offset(0, 1), end: Offset(0, 0))
+        .animate(
+          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+        );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 0.8).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-  }
-
-  Future<void> _startLocationTracking() async {
-    try {
-      await platform.invokeMethod('startLocationManagerAfterLogin');
-    } on PlatformException catch (e) {
-      debugPrint("Error starting location manager: $e");
-    }
-  }
-
-  Future<void> _sendXServerToAppDelegate() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    try {
-      await platform.invokeMethod('sendXServerToAppDelegate', {
-        'xServer': prefs.getString('X-Tenant'),
-      });
-    } on PlatformException catch (e) {
-      debugPrint("Failed to send xToken to AppDelegate: '${e.message}'.");
-    }
-  }
-
-  Future<void> _sendXMedsoftTokenToAppDelegate() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    try {
-      await platform.invokeMethod('sendXMedsoftTokenToAppDelegate', {
-        'xMedsoftToken': prefs.getString('X-Medsoft-Token'),
-      });
-    } on PlatformException catch (e) {
-      debugPrint("Failed to send xToken to AppDelegate: '${e.message}'.");
-    }
   }
 
   Future<void> _getInitialScreenString() async {
@@ -192,7 +152,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
     Set<String> allKeys = prefs.getKeys();
     for (String key in allKeys) {
-      if (key == 'isLoggedIn' || key == 'arrivedInFifty') {
+      if (key == 'isLoggedIn') {
         data[key] = prefs.getBool(key);
       } else {
         data[key] = prefs.getString(key) ?? 'null';
@@ -291,16 +251,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _sendXTokenToAppDelegate() async {
-    try {
-      await platform.invokeMethod('sendXTokenToAppDelegate', {
-        'xToken': xToken,
-      });
-    } on PlatformException catch (e) {
-      debugPrint("Failed to send xToken to AppDelegate: '${e.message}'.");
-    }
-  }
-
   void _addLocationToHistory(double latitude, double longitude) {
     String newLocation = "Уртраг: $longitude\nӨргөрөг: $latitude";
 
@@ -321,12 +271,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     await prefs.remove('X-Tenant');
     await prefs.remove('X-Medsoft-Token');
     await prefs.remove('Username');
-
-    try {
-      await platform.invokeMethod('stopLocationUpdates');
-    } on PlatformException catch (e) {
-      debugPrint("Failed to stop location updates: '${e.message}'.");
-    }
 
     Navigator.pushReplacement(
       context,
