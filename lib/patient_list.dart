@@ -29,20 +29,18 @@ class PatientListScreenState extends State<PatientListScreen> {
   @override
   void initState() {
     super.initState();
-    fetchPatients();
+    fetchPatients(initialLoad: true);
     _loadSharedPreferencesData();
 
     platform.invokeMethod('startIdleLocation');
 
-    _refreshTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+    _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       refreshPatients();
     });
   }
 
   void refreshPatients() {
-    setState(() {
-      isLoading = true;
-    });
+    // 👉 Don’t show spinner here, just fetch silently
     fetchPatients();
   }
 
@@ -52,7 +50,11 @@ class PatientListScreenState extends State<PatientListScreen> {
     super.dispose();
   }
 
-  Future<void> fetchPatients() async {
+  Future<void> fetchPatients({bool initialLoad = false}) async {
+    if (initialLoad) {
+      setState(() => isLoading = true); // show spinner only first time
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('X-Medsoft-Token') ?? '';
     final server = prefs.getString('X-Tenant') ?? '';
@@ -70,6 +72,7 @@ class PatientListScreenState extends State<PatientListScreen> {
     );
 
     if (response.statusCode == 200) {
+      debugPrint('Successfully updated patients: ${response.statusCode}');
       final json = jsonDecode(response.body);
       if (json['success'] == true) {
         setState(() {
@@ -78,7 +81,9 @@ class PatientListScreenState extends State<PatientListScreen> {
         });
       }
     } else {
-      setState(() => isLoading = false);
+      if (initialLoad) {
+        setState(() => isLoading = false);
+      }
       debugPrint('Failed to fetch patients: ${response.statusCode}');
       if (response.statusCode == 401 || response.statusCode == 403) {
         _logOut();
