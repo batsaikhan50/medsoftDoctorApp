@@ -100,7 +100,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _initializeNotifications();
-    platform.setMethodCallHandler(_methodCallHandler);
+
     _loadSharedPreferencesData();
 
     _animationController = AnimationController(
