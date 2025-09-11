@@ -24,15 +24,11 @@ class PatientListScreenState extends State<PatientListScreen> {
   Map<String, dynamic> sharedPreferencesData = {};
   Timer? _refreshTimer;
 
-  static const platform = MethodChannel('com.example.doctor_app/location');
-
   @override
   void initState() {
     super.initState();
     fetchPatients(initialLoad: true);
     _loadSharedPreferencesData();
-
-    platform.invokeMethod('startIdleLocation');
 
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       refreshPatients();

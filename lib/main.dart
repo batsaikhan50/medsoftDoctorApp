@@ -85,8 +85,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       FlutterLocalNotificationsPlugin();
   String? username;
 
-  static const platform = MethodChannel('com.example.doctor_app/location');
-
   final GlobalKey<PatientListScreenState> _patientListKey =
       GlobalKey<PatientListScreenState>();
 
