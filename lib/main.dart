@@ -1,13 +1,10 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:doctor_app/guide.dart';
 import 'package:doctor_app/patient_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'login.dart';
 
 void main() {
@@ -24,7 +21,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-
       home: FutureBuilder<Widget>(
         future: _getInitialScreen(),
         builder: (context, snapshot) {
@@ -77,71 +73,23 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
-  late String _displayText = '';
-  String _liveLocation = "Fetching live location...";
-  final List<String> _locationHistory = [];
+class _MyHomePageState extends State<MyHomePage> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
+
   String? username;
+  Map<String, dynamic> sharedPreferencesData = {};
 
   final GlobalKey<PatientListScreenState> _patientListKey =
       GlobalKey<PatientListScreenState>();
 
   static const String xToken = Constants.xToken;
-  Map<String, dynamic> sharedPreferencesData = {};
-
-  late AnimationController _animationController;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-  bool _isLocationSent = false;
 
   @override
   void initState() {
     super.initState();
     _initializeNotifications();
-
     _loadSharedPreferencesData();
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 500),
-    );
-
-    _slideAnimation = Tween<Offset>(begin: Offset(0, 1), end: Offset(0, 0))
-        .animate(
-          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-        );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 0.8).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-  }
-
-  Future<void> _getInitialScreenString() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-
-    String? xServer = prefs.getString('X-Tenant');
-    bool isGotToken = xServer != null && xServer.isNotEmpty;
-
-    String? xMedsoftServer = prefs.getString('X-Medsoft-Token');
-    bool isGotMedsoftToken =
-        xMedsoftServer != null && xMedsoftServer.isNotEmpty;
-
-    String? username = prefs.getString('Username');
-    bool isGotUsername = username != null && username.isNotEmpty;
-
-    _displayText =
-        'isLoggedIn: $isLoggedIn, isGotToken: $isGotToken, isGotMedsoftToken: $isGotMedsoftToken, isGotUsername: $isGotUsername';
-
-    if (isLoggedIn && isGotToken && isGotMedsoftToken && isGotUsername) {
-      debugPrint(
-        'isLoggedIn: $isLoggedIn, isGotToken: $isGotToken, isGotMedsoftToken: $isGotMedsoftToken, isGotUsername: $isGotUsername',
-      );
-    } else {
-      return debugPrint("empty shared");
-    }
   }
 
   Future<void> _loadSharedPreferencesData() async {
@@ -183,23 +131,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-  Future<void> _methodCallHandler(MethodCall call) async {
-    if (call.method == 'updateLocation') {
-      final locationData = call.arguments as Map;
-      final latitude = locationData['latitude'];
-      final longitude = locationData['longitude'];
-
-      setState(() {
-        _liveLocation =
-            "Сүүлд илгээсэн байршил\nУртраг: $longitude\nӨргөрөг: $latitude";
-        _addLocationToHistory(latitude, longitude);
-      });
-    } else if (call.method == 'navigateToLogin') {
-      _logOut();
-      _showNotification();
-    }
-  }
-
   Future<void> _showNotification() async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
@@ -228,39 +159,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _sendLocationByButton() async {
-    try {
-      await platform.invokeMethod('sendLocationToAPIByButton');
-
-      setState(() {
-        _isLocationSent = true;
-      });
-
-      _animationController.forward();
-
-      await Future.delayed(Duration(seconds: 2));
-
-      setState(() {
-        _isLocationSent = false;
-      });
-      _animationController.reverse();
-    } on PlatformException catch (e) {
-      debugPrint("Failed to send xToken to AppDelegate: '${e.message}'.");
-    }
-  }
-
-  void _addLocationToHistory(double latitude, double longitude) {
-    String newLocation = "Уртраг: $longitude\nӨргөрөг: $latitude";
-
-    if (_locationHistory.length >= 9) {
-      _locationHistory.removeAt(0);
-    }
-
-    setState(() {
-      _locationHistory.add(newLocation);
-    });
-  }
-
   void _logOut() async {
     debugPrint("Entered _logOut");
 
@@ -272,7 +170,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
@@ -280,7 +178,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xFF00CCCC),
+        backgroundColor: const Color(0xFF00CCCC),
         title: Text(widget.title),
         actions: [
           IconButton(
@@ -295,7 +193,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         child: Column(
           children: <Widget>[
             DrawerHeader(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Color.fromARGB(255, 236, 169, 175),
               ),
               child: Center(
@@ -310,23 +208,26 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               title: Center(
                 child: Text(
                   username ?? 'Guest',
-                  style: TextStyle(fontSize: 20),
+                  style: const TextStyle(fontSize: 20),
                 ),
               ),
             ),
             const Divider(),
             ListTile(
-              leading: Icon(Icons.info_outline, color: Colors.blueAccent),
-              title: Text('Хэрэглэх заавар', style: TextStyle(fontSize: 18)),
+              leading: const Icon(Icons.info_outline, color: Colors.blueAccent),
+              title: const Text(
+                'Хэрэглэх заавар',
+                style: TextStyle(fontSize: 18),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => GuideScreen()),
+                  MaterialPageRoute(builder: (context) => const GuideScreen()),
                 );
               },
             ),
-            Spacer(),
+            const Spacer(),
             Container(
               margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -334,8 +235,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: ListTile(
-                title: Center(
-                  child: const Text(
+                title: const Center(
+                  child: Text(
                     'Гарах',
                     style: TextStyle(
                       color: Colors.white,
@@ -349,7 +250,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 },
               ),
             ),
-            SizedBox(height: 50),
+            const SizedBox(height: 50),
           ],
         ),
       ),
