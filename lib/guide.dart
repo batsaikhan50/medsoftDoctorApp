@@ -4,20 +4,20 @@ class GuideScreen extends StatelessWidget {
   const GuideScreen({super.key});
 
   final List<Map<String, String>> guideSteps = const [
+    // {
+    //   'caption': 'Алхам 1: "Location" -> "Always" тохиргоог асаах',
+    //   'asset': 'assets/guide/always.png',
+    // },
+    // {
+    //   'caption': 'Алхам 2: "Location" -> "Precise Location" тохиргоог асаах',
+    //   'asset': 'assets/guide/precise.png',
+    // },
+    // {
+    //   'caption': 'Алхам 3: "Background App Refresh" тохиргоог асаах',
+    //   'asset': 'assets/guide/background.png',
+    // },
     {
-      'caption': 'Алхам 1: "Location" -> "Always" тохиргоог асаах',
-      'asset': 'assets/guide/always.png',
-    },
-    {
-      'caption': 'Алхам 2: "Location" -> "Precise Location" тохиргоог асаах',
-      'asset': 'assets/guide/precise.png',
-    },
-    {
-      'caption': 'Алхам 3: "Background App Refresh" тохиргоог асаах',
-      'asset': 'assets/guide/background.png',
-    },
-    {
-      'caption': 'Алхам 4: "Cellural Data" тохиргоог асаах',
+      'caption': '"Cellural Data" тохиргоог асаах',
       'asset': 'assets/guide/celluralData.png',
     },
   ];

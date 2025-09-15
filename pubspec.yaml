@@ -75,9 +75,9 @@ flutter:
     - assets/icon/doctor_logo_login.png
     - assets/icon/ambulanceCar.png
     - assets/icon/userWithPhone.png
-    - assets/guide/always.png
-    - assets/guide/precise.png
-    - assets/guide/background.png
+    # - assets/guide/always.png
+    # - assets/guide/precise.png
+    # - assets/guide/background.png
     - assets/guide/celluralData.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
