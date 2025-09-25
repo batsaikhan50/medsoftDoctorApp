@@ -5,11 +5,7 @@ class WebViewScreen extends StatefulWidget {
   final String url;
   final String title;
 
-  const WebViewScreen({
-    super.key,
-    required this.url,
-    this.title = "Login",
-  });
+  const WebViewScreen({super.key, required this.url, this.title = "Login"});
 
   @override
   State<WebViewScreen> createState() => _WebViewScreenState();
@@ -29,7 +25,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _controller.setNavigationDelegate(
       NavigationDelegate(
         onNavigationRequest: (NavigationRequest request) {
-          if (request.url.startsWith('medsofttrack://callback')) {
+          if (request.url.startsWith('medsoftdoctor://callback')) {
             Navigator.of(context).pop();
             return NavigationDecision.prevent;
           }
@@ -66,7 +62,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     return Scaffold(
+      resizeToAvoidBottomInset: false, // let WebView manage keyboard itself
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF009688),
@@ -103,21 +101,36 @@ class _WebViewScreenState extends State<WebViewScreen> {
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          Positioned(
-            top: 16,
-            right: 16,
-            child: _buildActionButton(
-              icon: Icons.refresh,
-              label: 'Refresh',
-              onPressed: () {
-                _controller.reload();
-              },
+      body: SafeArea(
+        bottom: false, // allow full height, no extra space
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                color: const Color(0xFFE2E4ED), // background for padding area
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      12,
+                    ), // optional rounded edges
+                    child: WebViewWidget(controller: _controller),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+
+            Positioned(
+              top: 16,
+              right: 16,
+              child: _buildActionButton(
+                icon: Icons.refresh,
+                label: 'Refresh',
+                onPressed: () => _controller.reload(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

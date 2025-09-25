@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 data['data'].map<Map<String, String>>((server) {
                   return {
                     'name': server['name'].toString(),
-                    'url': server['url'].toString(),
+                    'domain': server['domain'].toString(),
                   };
                 }),
               );
@@ -204,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       setState(() {});
       _updatePasswordRules();
     });
-    
+
     _passwordCheckController.addListener(() {
       setState(() {});
       _updatePasswordRules();
@@ -364,26 +364,24 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       return;
     }
 
-    final body =
-        _selectedRole?['name'] == 'Citizen'
-            ? {
-              'username': _usernameLoginController.text,
-              'password': _passwordLoginController.text,
-              'type': 'driver',
-            }
-            : {
-              'username': _usernameLoginController.text,
-              'password': _passwordLoginController.text,
-            };
+    final body = _selectedRole?['name'] == 'Citizen'
+        ? {
+            'username': _usernameLoginController.text,
+            'password': _passwordLoginController.text,
+            'type': 'driver',
+          }
+        : {
+            'username': _usernameLoginController.text,
+            'password': _passwordLoginController.text,
+          };
 
-    final headers =
-        _selectedRole?['name'] == 'Citizen'
-            ? {'Content-Type': 'application/json'}
-            : {
-              'X-Token': Constants.xToken,
-              'X-Tenant': _selectedRole?['name'] ?? '',
-              'Content-Type': 'application/json',
-            };
+    final headers = _selectedRole?['name'] == 'Citizen'
+        ? {'Content-Type': 'application/json'}
+        : {
+            'X-Token': Constants.xToken,
+            'X-Tenant': _selectedRole?['name'] ?? '',
+            'Content-Type': 'application/json',
+          };
 
     debugPrint('Request Headers: $headers');
     debugPrint('Request Body: ${json.encode(body)}');
@@ -559,10 +557,9 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   decoration: BoxDecoration(
-                    color:
-                        _selectedToggleIndex == 0
-                            ? const Color(0xFF009688)
-                            : const Color(0xFF0077b3),
+                    color: _selectedToggleIndex == 0
+                        ? const Color(0xFF009688)
+                        : const Color(0xFF0077b3),
                     borderRadius: BorderRadius.circular(25),
                   ),
                 ),
@@ -685,8 +682,9 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
   Widget _buildLoginForm() {
     final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
-    final maxWidth =
-        isTablet ? MediaQuery.of(context).size.width * 0.5 : double.infinity;
+    final maxWidth = isTablet
+        ? MediaQuery.of(context).size.width * 0.5
+        : double.infinity;
 
     return SingleChildScrollView(
       controller: _scrollController,
@@ -714,9 +712,9 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   ),
                 ),
                 const SizedBox(height: 20),
+
                 // buildAnimatedToggle(),
                 // const SizedBox(height: 20),
-
                 if (_serverNames.isNotEmpty && _selectedToggleIndex == 0)
                   Container(
                     height: 56,
@@ -743,23 +741,29 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                                   _selectedRole = newValue;
                                   _errorMessage = '';
                                 });
+
+                                debugPrint(
+                                  'MY FORGET URL: ${newValue.toString()}',
+                                );
+
                                 SharedPreferences prefs =
                                     await SharedPreferences.getInstance();
                                 await prefs.setString(
                                   'forgetUrl',
-                                  newValue['url'] ?? '',
+                                  newValue['domain'] ?? '',
                                 );
                               }
                             },
-                            items:
-                                _serverNames.map<
-                                  DropdownMenuItem<Map<String, String>>
-                                >((Map<String, String> value) {
+                            items: _serverNames
+                                .map<DropdownMenuItem<Map<String, String>>>((
+                                  Map<String, String> value,
+                                ) {
                                   return DropdownMenuItem<Map<String, String>>(
                                     value: value,
                                     child: Text(value['name']!),
                                   );
-                                }).toList(),
+                                })
+                                .toList(),
                             underline: const SizedBox.shrink(),
                           ),
                         ),
@@ -796,15 +800,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                     decoration: InputDecoration(
                       labelText: 'Нэвтрэх нэр',
                       prefixIcon: const Icon(Icons.person),
-                      suffixIcon:
-                          _usernameLoginController.text.isNotEmpty
-                              ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _usernameLoginController.clear();
-                                },
-                              )
-                              : null,
+                      suffixIcon: _usernameLoginController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _usernameLoginController.clear();
+                              },
+                            )
+                          : null,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -822,15 +825,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                     decoration: InputDecoration(
                       labelText: 'Нэвтрэх нэр',
                       prefixIcon: const Icon(Icons.person),
-                      suffixIcon:
-                          _usernameController.text.isNotEmpty
-                              ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _usernameController.clear();
-                                },
-                              )
-                              : null,
+                      suffixIcon: _usernameController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _usernameController.clear();
+                              },
+                            )
+                          : null,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -927,7 +929,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 //       ),
                 //     ),
                 //   ),
-
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _passwordController,
@@ -1096,7 +1097,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                     ),
                   ),
 
-                if (_selectedToggleIndex == 1)
+                if (_selectedToggleIndex == 0)
                   Align(
                     alignment: Alignment.centerRight,
                     child: GestureDetector(
@@ -1104,6 +1105,10 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                         SharedPreferences prefs =
                             await SharedPreferences.getInstance();
                         String? baseUrl = prefs.getString('forgetUrl');
+
+                                debugPrint(
+                                  'MY PREFS FORGETURL: ${baseUrl}',
+                                );
                         String? hospital = _selectedRole?['name'];
 
                         if (baseUrl != null &&
@@ -1112,12 +1117,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (context) => WebViewScreen(
-                                    url:
-                                        '$baseUrl/forget?callback=medsofttrack://callback',
-                                    title: hospital,
-                                  ),
+                              builder: (context) => WebViewScreen(
+                                url:
+                                    '$baseUrl/forget?callback=medsoftdoctor://callback',
+                                title: 'Нэвтрэх | ${hospital}',
+                              ),
                             ),
                           );
                         } else {
@@ -1142,40 +1146,35 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _selectedToggleIndex == 0
-                            ? const Color(0xFF009688)
-                            : const Color(0xFF0077b3),
+                    backgroundColor: _selectedToggleIndex == 0
+                        ? const Color(0xFF009688)
+                        : const Color(0xFF0077b3),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     minimumSize: const Size(double.infinity, 40),
                   ),
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () {
-                            if (_selectedToggleIndex == 1) {
-                              if (_validateRegisterInputs()) {
-                                _register();
-                              }
-                            } else {
-                              _login();
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          if (_selectedToggleIndex == 1) {
+                            if (_validateRegisterInputs()) {
+                              _register();
                             }
-                          },
-                  child:
-                      _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                            _selectedToggleIndex == 0
-                                ? 'НЭВТРЭХ'
-                                : 'БҮРТГҮҮЛЭХ',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.white,
-                            ),
+                          } else {
+                            _login();
+                          }
+                        },
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          _selectedToggleIndex == 0 ? 'НЭВТРЭХ' : 'БҮРТГҮҮЛЭХ',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Colors.white,
                           ),
+                        ),
                 ),
               ],
             ),

@@ -6,6 +6,7 @@ import 'package:doctor_app/guide.dart';
 import 'package:doctor_app/patient_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
+import 'package:uni_links/uni_links.dart';
 
 void main() {
   runApp(const MyApp());
@@ -44,25 +45,31 @@ class MyApp extends StatelessWidget {
   }
 
   Future<Widget> _getInitialScreen() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? initialLink = await getInitialLink(); // <-- get the Universal Link
 
-    String? xServer = prefs.getString('X-Tenant');
-    bool isGotToken = xServer != null && xServer.isNotEmpty;
+  // Check login status
+  bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
-    String? xMedsoftServer = prefs.getString('X-Medsoft-Token');
-    bool isGotMedsoftToken =
-        xMedsoftServer != null && xMedsoftServer.isNotEmpty;
+  if (initialLink != null) {
+    Uri uri = Uri.parse(initialLink);
 
-    String? username = prefs.getString('Username');
-    bool isGotUsername = username != null && username.isNotEmpty;
-
-    if (isLoggedIn && isGotToken && isGotMedsoftToken && isGotUsername) {
-      return const MyHomePage(title: 'Дуудлагын жагсаалт');
-    } else {
-      return const LoginScreen();
+    // Example: QR token in /qr/<token>
+    if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
+      String token = uri.pathSegments[1];
+      // return QrScreen(token: token); // navigate to QR screen directly
+      return LoginScreen(); // navigate to QR screen directly
     }
   }
+
+  // Normal login flow
+  if (isLoggedIn) {
+    return const MyHomePage(title: 'Дуудлагын жагсаалт');
+  } else {
+    return const LoginScreen();
+  }
+}
+
 }
 
 class MyHomePage extends StatefulWidget {
@@ -91,6 +98,22 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     _initializeNotifications();
     _loadSharedPreferencesData();
+
+  // Listen for Universal Links while app is running
+  linkStream.listen((link) {
+    if (link != null) {
+      Uri uri = Uri.parse(link);
+      if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
+        String token = uri.pathSegments[1];
+        Navigator.push(
+          context,
+          // MaterialPageRoute(builder: (_) => QrScreen(token: token)),
+          MaterialPageRoute(builder: (_) => LoginScreen()),
+        );
+      }
+    }
+  });
+
   }
 
   Future<void> _loadSharedPreferencesData() async {
