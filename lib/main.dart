@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:doctor_app/qr_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:doctor_app/constants.dart';
@@ -252,6 +253,21 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
             const Spacer(),
+            ListTile(
+  leading: const Icon(Icons.qr_code_scanner, color: Colors.green),
+  title: const Text(
+    'QR код унших',
+    style: TextStyle(fontSize: 18),
+  ),
+  onTap: () {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const QrScanScreen()),
+    );
+  },
+),
+
             Container(
               margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
