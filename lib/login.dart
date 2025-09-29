@@ -376,7 +376,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         },
       );
 
-      debugPrint('Wait API Response: ${waitResponse.body}');
+      debugPrint('Login Wait API Response: ${waitResponse.body}');
 
       if (waitResponse.statusCode == 200) {
         // ✅ Success → go to ClaimQRScreen
@@ -385,7 +385,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
           MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
         );
       } else {
-        debugPrint("Wait failed: ${waitResponse.statusCode}");
+        debugPrint("Login Wait failed: ${waitResponse.statusCode}");
       }
     } catch (e) {
       debugPrint('Error calling wait API: $e');
@@ -452,11 +452,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool('isLoggedIn', true);
 
-          final savedToken = await getSavedToken();
-          if (savedToken != null) {
-            await callWaitApi(savedToken);
-          }
-
           final String token = data['data']['token'];
 
           await prefs.setString('X-Tenant', _selectedRole?['name'] ?? '');
@@ -466,6 +461,12 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
           await prefs.setString('Username', _usernameLoginController.text);
 
           _loadSharedPreferencesData();
+
+          final savedToken = await getSavedToken();
+          if (savedToken != null) {
+            await callWaitApi(context, savedToken);
+            return;
+          }
 
           _isLoading = false;
 
