@@ -144,31 +144,32 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Listen for Universal Links while app is running
     linkStream.listen((link) async {
-      if (link != null) {
-        Uri uri = Uri.parse(link);
-        if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
-          String token = uri.pathSegments[1];
+  if (link != null) {
+    Uri uri = Uri.parse(link);
+    if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
+      String token = uri.pathSegments[1];
 
-          // Save token for later if needed
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('scannedToken', token);
+      // Save token for later if needed
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('scannedToken', token);
 
-          // Only call /wait
-          bool waitSuccess = await callWaitApi(token);
+      // Only call /wait
+      bool waitSuccess = await callWaitApi(token);
 
-          if (waitSuccess) {
-            // Navigate to claim screen
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
-            );
-          } else {
-            // Optionally show error notification
-            await _showNotification();
-          }
-        }
+      if (waitSuccess) {
+        // Navigate to claim screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
+        );
+      } else {
+        // Optionally show error notification
+        await _showNotification();
       }
-    });
+    }
+  }
+});
+
   }
 
   Future<void> _loadSharedPreferencesData() async {

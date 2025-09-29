@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:doctor_app/claim_qr.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:http/http.dart' as http;
@@ -358,30 +359,36 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   }
 
   /// Call the /wait and /attend endpoints with the scanned token
-
-  Future<void> callWaitAndClaimApis(String token) async {
+  Future<void> callWaitApi(BuildContext context, String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
       final server = prefs.getString('X-Tenant') ?? '';
 
       final waitResponse = await http.get(
-        Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
+        Uri.parse(
+          '${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token',
+        ),
         headers: {
           'X-Medsoft-Token': tokenSaved,
           'X-Tenant': server,
           'X-Token': Constants.xToken,
         },
       );
+
       debugPrint('Wait API Response: ${waitResponse.body}');
 
-      final claimResponse = await http.get(
-        Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/claim?id=$token'),
-        headers: {'X-Medsoft-Token': token, 'Content-Type': 'application/json'},
-      );
-      debugPrint('Claim API Response: ${claimResponse.body}');
+      if (waitResponse.statusCode == 200) {
+        // ✅ Success → go to ClaimQRScreen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
+        );
+      } else {
+        debugPrint("Wait failed: ${waitResponse.statusCode}");
+      }
     } catch (e) {
-      debugPrint('Error calling wait/claim APIs: $e');
+      debugPrint('Error calling wait API: $e');
     }
   }
 
@@ -447,9 +454,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
           final savedToken = await getSavedToken();
           if (savedToken != null) {
-            await callWaitAndClaimApis(savedToken);
-            // Optional: clear token after use
-            // await prefs.remove('scannedToken');
+            await callWaitApi(savedToken);
           }
 
           final String token = data['data']['token'];
