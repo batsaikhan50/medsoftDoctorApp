@@ -1,6 +1,9 @@
 import 'dart:developer';
+import 'package:doctor_app/claim_qr.dart';
+import 'package:doctor_app/constants.dart';
 import 'package:doctor_app/main.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,31 +26,68 @@ class _QrScanScreenState extends State<QrScanScreen> {
     super.dispose();
   }
 
+  Future<void> _handleScannedToken(String url) async {
+    try {
+      // Parse token from url
+      Uri uri = Uri.parse(url);
+      String? token;
+      if (uri.pathSegments.length >= 2 && uri.pathSegments[0] == "qr") {
+        token = uri.pathSegments[1];
+      }
+
+      if (token == null) {
+        log("Invalid QR format");
+        return;
+      }
+
+      log("Extracted token: $token");
+
+      final prefs = await SharedPreferences.getInstance();
+      final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
+      final server = prefs.getString('X-Tenant') ?? '';
+
+      final headers = {
+        'X-Medsoft-Token': tokenSaved,
+        'X-Tenant': server,
+        'X-Token': Constants.xToken,
+      };
+
+      final response = await http.get(
+        Uri.parse(
+          "https://runner-api.medsoft.care/api/gateway/general/get/api/auth/qr/wait?id=$token",
+        ),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ClaimQRScreen(token: token!)),
+        );
+      } else {
+        log("Wait API failed: ${response.statusCode}");
+      }
+    } catch (e) {
+      log("Error handling QR: $e");
+    }
+  }
+
   void _onQRViewCreated(QRViewController ctrl) {
     controller = ctrl;
     ctrl.scannedDataStream.listen((scanData) async {
       if (!isScanned) {
         setState(() => isScanned = true);
 
-        String token = scanData.code ?? "";
-        log("Scanned token: $token");
+        // *** CHANGE: Only pause the camera. Removing controller?.dispose() here.
+        await controller?.pauseCamera();
+        // The main thread is now free to update the UI and navigate.
 
-        // Save token to SharedPreferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString("X-Medsoft-Token", token);
-        await prefs.setBool("isLoggedIn", true);
-
-        // Navigate to home screen
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MyHomePage(
-                title: 'Дуудлагын жагсаалт',
-              ),
-            ),
-          );
-        }
+        // Use Future.microtask instead of Future.delayed(Duration.zero)
+        // for scheduling navigation immediately after the current build cycle.
+        Future.microtask(() {
+          _handleScannedToken(scanData.code ?? "");
+        });
       }
     });
   }
@@ -60,10 +100,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
         children: [
           Expanded(
             flex: 5,
-            child: QRView(
-              key: qrKey,
-              onQRViewCreated: _onQRViewCreated,
-            ),
+            child: QRView(key: qrKey, onQRViewCreated: _onQRViewCreated),
           ),
           const Expanded(
             flex: 1,

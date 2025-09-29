@@ -55,15 +55,20 @@ class PatientListScreenState extends State<PatientListScreen> {
     final server = prefs.getString('X-Tenant') ?? '';
 
     final uri = Uri.parse('${Constants.appUrl}/room/get/driver');
+    
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'X-Medsoft-Token': token,
+      'X-Tenant': server,
+      'X-Token': Constants.xToken,
+    };
+    debugPrint('Request URI: $uri');
+    debugPrint('Request Headers: $headers');
+    // --- End of Debug Log Headers ---
 
     final response = await http.get(
       uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'X-Medsoft-Token': token,
-        'X-Tenant': server,
-        'X-Token': Constants.xToken,
-      },
+      headers: headers, // Use the new headers variable
     );
 
     if (response.statusCode == 200) {
