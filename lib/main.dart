@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/qr_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:doctor_app/guide.dart';
 import 'package:doctor_app/patient_list.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
 import 'package:uni_links/uni_links.dart';
@@ -20,7 +22,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      debugShowCheckedModeBanner: false, 
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
@@ -46,31 +48,30 @@ class MyApp extends StatelessWidget {
   }
 
   Future<Widget> _getInitialScreen() async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? initialLink = await getInitialLink(); // <-- get the Universal Link
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? initialLink = await getInitialLink(); // <-- get the Universal Link
 
-  // Check login status
-  bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    // Check login status
+    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
-  if (initialLink != null) {
-    Uri uri = Uri.parse(initialLink);
+    if (initialLink != null) {
+      Uri uri = Uri.parse(initialLink);
 
-    // Example: QR token in /qr/<token>
-    if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
-      String token = uri.pathSegments[1];
-      // return QrScreen(token: token); // navigate to QR screen directly
-      return LoginScreen(); // navigate to QR screen directly
+      // Example: QR token in /qr/<token>
+      if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
+        String token = uri.pathSegments[1];
+        // return QrScreen(token: token); // navigate to QR screen directly
+        return LoginScreen(); // navigate to QR screen directly
+      }
+    }
+
+    // Normal login flow
+    if (isLoggedIn) {
+      return const MyHomePage(title: 'Дуудлагын жагсаалт');
+    } else {
+      return const LoginScreen();
     }
   }
-
-  // Normal login flow
-  if (isLoggedIn) {
-    return const MyHomePage(title: 'Дуудлагын жагсаалт');
-  } else {
-    return const LoginScreen();
-  }
-}
-
 }
 
 class MyHomePage extends StatefulWidget {
@@ -100,21 +101,74 @@ class _MyHomePageState extends State<MyHomePage> {
     _initializeNotifications();
     _loadSharedPreferencesData();
 
-  // Listen for Universal Links while app is running
-  linkStream.listen((link) {
-    if (link != null) {
-      Uri uri = Uri.parse(link);
-      if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
-        String token = uri.pathSegments[1];
-        Navigator.push(
-          context,
-          // MaterialPageRoute(builder: (_) => QrScreen(token: token)),
-          MaterialPageRoute(builder: (_) => LoginScreen()),
+    Future<void> saveScannedToken(String token) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('scannedToken', token);
+    }
+
+    Future<String?> getSavedToken() async {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('scannedToken');
+    }
+
+    Future<bool> callWaitApi(String token) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
+        final server = prefs.getString('X-Tenant') ?? '';
+
+        final waitResponse = await http.get(
+          Uri.parse(
+            '${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token',
+          ),
+          headers: {
+            'X-Medsoft-Token': tokenSaved,
+            'X-Tenant': server,
+            'X-Token': Constants.xToken,
+          },
         );
+
+        debugPrint('Wait API Response: ${waitResponse.body}');
+
+        // Return true if wait is successful (adjust based on your API response)
+        if (waitResponse.statusCode == 200) {
+          return true;
+        } else {
+          return false;
+        }
+      } catch (e) {
+        debugPrint('Error calling wait API: $e');
+        return false;
       }
     }
-  });
 
+    // Listen for Universal Links while app is running
+    linkStream.listen((link) async {
+      if (link != null) {
+        Uri uri = Uri.parse(link);
+        if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
+          String token = uri.pathSegments[1];
+
+          // Save token for later if needed
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('scannedToken', token);
+
+          // Only call /wait
+          bool waitSuccess = await callWaitApi(token);
+
+          if (waitSuccess) {
+            // Navigate to claim screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
+            );
+          } else {
+            // Optionally show error notification
+            await _showNotification();
+          }
+        }
+      }
+    });
   }
 
   Future<void> _loadSharedPreferencesData() async {
@@ -254,19 +308,16 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const Spacer(),
             ListTile(
-  leading: const Icon(Icons.qr_code_scanner, color: Colors.green),
-  title: const Text(
-    'QR код унших',
-    style: TextStyle(fontSize: 18),
-  ),
-  onTap: () {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const QrScanScreen()),
-    );
-  },
-),
+              leading: const Icon(Icons.qr_code_scanner, color: Colors.green),
+              title: const Text('QR код унших', style: TextStyle(fontSize: 18)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const QrScanScreen()),
+                );
+              },
+            ),
 
             Container(
               margin: const EdgeInsets.all(10),

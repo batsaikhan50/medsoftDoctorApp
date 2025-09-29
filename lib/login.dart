@@ -351,6 +351,40 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Retrieve the saved scanned token from SharedPreferences
+  Future<String?> getSavedToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('scannedToken');
+  }
+
+  /// Call the /wait and /attend endpoints with the scanned token
+
+  Future<void> callWaitAndClaimApis(String token) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
+      final server = prefs.getString('X-Tenant') ?? '';
+
+      final waitResponse = await http.get(
+        Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
+        headers: {
+          'X-Medsoft-Token': tokenSaved,
+          'X-Tenant': server,
+          'X-Token': Constants.xToken,
+        },
+      );
+      debugPrint('Wait API Response: ${waitResponse.body}');
+
+      final claimResponse = await http.get(
+        Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/claim?id=$token'),
+        headers: {'X-Medsoft-Token': token, 'Content-Type': 'application/json'},
+      );
+      debugPrint('Claim API Response: ${claimResponse.body}');
+    } catch (e) {
+      debugPrint('Error calling wait/claim APIs: $e');
+    }
+  }
+
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
@@ -410,6 +444,13 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         if (data['success'] == true) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool('isLoggedIn', true);
+
+          final savedToken = await getSavedToken();
+          if (savedToken != null) {
+            await callWaitAndClaimApis(savedToken);
+            // Optional: clear token after use
+            // await prefs.remove('scannedToken');
+          }
 
           final String token = data['data']['token'];
 
@@ -1106,9 +1147,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                             await SharedPreferences.getInstance();
                         String? baseUrl = prefs.getString('forgetUrl');
 
-                                debugPrint(
-                                  'MY PREFS FORGETURL: ${baseUrl}',
-                                );
+                        debugPrint('MY PREFS FORGETURL: ${baseUrl}');
                         String? hospital = _selectedRole?['name'];
 
                         if (baseUrl != null &&
