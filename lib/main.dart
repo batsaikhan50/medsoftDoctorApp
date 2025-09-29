@@ -154,7 +154,12 @@ class _MyHomePageState extends State<MyHomePage> {
           await prefs.setString('scannedToken', token);
 
           // Only call /wait
-          bool waitSuccess = await callWaitApi(token);
+          bool waitSuccess = false;
+
+          // ✅ Call wait API only if the user is already logged in
+          if (prefs.getBool('isLoggedIn') == true) {
+            waitSuccess = await callWaitApi(token);
+          }
 
           if (waitSuccess) {
             // Navigate to claim screen
@@ -162,9 +167,6 @@ class _MyHomePageState extends State<MyHomePage> {
               context,
               MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
             );
-          } else {
-            // Optionally show error notification
-            await _showNotification();
           }
         }
       }

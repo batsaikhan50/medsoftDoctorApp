@@ -139,15 +139,17 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
             const SizedBox(height: 20),
 
             ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        const MyHomePage(title: "Дуудлагын жагсаалт"),
-                  ),
-                );
-              },
+              onPressed: _isLoading
+                  ? null
+                  : () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const MyHomePage(title: "Дуудлагын жагсаалт"),
+                        ),
+                      );
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 padding: const EdgeInsets.symmetric(
