@@ -48,24 +48,21 @@ class MyApp extends StatelessWidget {
   }
 
   Future<Widget> _getInitialScreen() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? initialLink = await getInitialLink(); // <-- get the Universal Link
-
-    // Check login status
-    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final prefs = await SharedPreferences.getInstance();
+    final initialLink = await getInitialLink();
+    debugPrint("INMY MAIN'S _getInitialScreen initialLink: ${initialLink}");
 
     if (initialLink != null) {
       Uri uri = Uri.parse(initialLink);
 
-      // Example: QR token in /qr/<token>
       if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
         String token = uri.pathSegments[1];
-        // return QrScreen(token: token); // navigate to QR screen directly
-        return LoginScreen(); // navigate to QR screen directly
+        await prefs.setString('scannedToken', token);
       }
     }
 
-    // Normal login flow
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
     if (isLoggedIn) {
       return const MyHomePage(title: 'Дуудлагын жагсаалт');
     } else {
@@ -98,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _initializeNotifications();
+
     _loadSharedPreferencesData();
 
     Future<void> saveScannedToken(String token) async {
@@ -130,7 +127,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
         debugPrint('Main Wait API Response: ${waitResponse.body}');
 
-        // Return true if wait is successful (adjust based on your API response)
         if (waitResponse.statusCode == 200) {
           return true;
         } else {
@@ -142,33 +138,35 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
-    // Listen for Universal Links while app is running
     linkStream.listen((link) async {
       if (link != null) {
         Uri uri = Uri.parse(link);
         if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
           String token = uri.pathSegments[1];
 
-          // Save token for later if needed
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('scannedToken', token);
+          await saveScannedToken(token);
 
-          // Only call /wait
           bool waitSuccess = false;
 
-          // ✅ Call wait API only if the user is already logged in
+          final prefs = await SharedPreferences.getInstance();
           if (prefs.getBool('isLoggedIn') == true) {
             waitSuccess = await callWaitApi(token);
           }
 
-          if (waitSuccess) {
-            // Navigate to claim screen
+          if (waitSuccess && mounted) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
             );
           }
         }
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('isLoggedIn') == true) {
+        _initializeNotifications();
       }
     });
   }
@@ -248,6 +246,7 @@ class _MyHomePageState extends State<MyHomePage> {
     await prefs.remove('X-Tenant');
     await prefs.remove('X-Medsoft-Token');
     await prefs.remove('Username');
+    await prefs.remove('scannedToken');
 
     Navigator.pushReplacement(
       context,

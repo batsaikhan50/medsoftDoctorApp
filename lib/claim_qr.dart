@@ -3,7 +3,7 @@ import 'package:doctor_app/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'main.dart'; // for MyHomePage
+import 'main.dart';
 
 class ClaimQRScreen extends StatefulWidget {
   final String token;
@@ -37,20 +37,20 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
 
       if (response.statusCode == 200) {
         log("Claim success");
-        claimSuccessful = true; // Set flag on success
+        claimSuccessful = true;
       } else {
         log("Claim failed: ${response.statusCode}");
-        // Optionally show a dialog or SnackBar on failure
+       
       }
     } catch (e) {
       log("Error calling claim API: $e");
-      // Optionally show a dialog or SnackBar on exception
+     
     }
 
     if (!mounted) return;
 
     if (claimSuccessful) {
-      // Only navigate away on success
+     
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
@@ -59,11 +59,11 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
         (route) => false,
       );
     } else {
-      // If failed, stop loading and stay on the screen (or show an error)
+     
       setState(() {
         _isLoading = false;
       });
-      // A simple SnackBar to inform the user of failure
+     
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Баталгаажуулалт амжилтгүй боллоо."),
@@ -93,9 +93,9 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
                   ? null
                   : () {
                       setState(
-                        () => _isLoading = true, // 1. Update UI to show loading
+                        () => _isLoading = true,
                       );
-                      Future.microtask(() => _claim()); // 2. Start async work
+                      Future.microtask(() => _claim());
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,

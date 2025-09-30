@@ -55,7 +55,7 @@ class PatientListScreenState extends State<PatientListScreen> {
     final server = prefs.getString('X-Tenant') ?? '';
 
     final uri = Uri.parse('${Constants.appUrl}/room/get/driver');
-    
+
     final headers = {
       'Authorization': 'Bearer $token',
       'X-Medsoft-Token': token,
@@ -64,12 +64,8 @@ class PatientListScreenState extends State<PatientListScreen> {
     };
     debugPrint('Request URI: $uri');
     debugPrint('Request Headers: $headers');
-    // --- End of Debug Log Headers ---
 
-    final response = await http.get(
-      uri,
-      headers: headers, // Use the new headers variable
-    );
+    final response = await http.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       debugPrint('Successfully updated patients: ${response.statusCode}');
@@ -99,6 +95,7 @@ class PatientListScreenState extends State<PatientListScreen> {
     await prefs.remove('X-Tenant');
     await prefs.remove('X-Medsoft-Token');
     await prefs.remove('Username');
+    await prefs.remove('scannedToken');
 
     Navigator.pushReplacement(
       context,
@@ -172,7 +169,6 @@ class PatientListScreenState extends State<PatientListScreen> {
                                         final phone = patient['patientPhone'];
 
                                         if (roomId == null || phone == null) {
-                                          // show snackbar with root context
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
@@ -186,7 +182,6 @@ class PatientListScreenState extends State<PatientListScreen> {
                                           return;
                                         }
 
-                                        // Save a safe parent context before showing dialog
                                         final rootContext = context;
 
                                         showDialog(
@@ -477,7 +472,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                                                                         onPressed: () {
                                                                           Navigator.of(
                                                                             context,
-                                                                          ).pop(); // close dialog
+                                                                          ).pop();
                                                                         },
                                                                         child: const Text(
                                                                           'Буцах',
@@ -516,7 +511,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                                                                                   200) {
                                                                                 Navigator.of(
                                                                                   context,
-                                                                                ).pop(); // close dialog
+                                                                                ).pop();
                                                                                 ScaffoldMessenger.of(
                                                                                   rootContext,
                                                                                 ).showSnackBar(
