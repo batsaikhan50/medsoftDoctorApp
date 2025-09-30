@@ -28,7 +28,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
   Future<void> _handleScannedToken(String url) async {
     try {
-      
+      // Parse token from url
       Uri uri = Uri.parse(url);
       String? token;
       if (uri.pathSegments.length >= 2 && uri.pathSegments[0] == "qr") {
@@ -54,7 +54,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
       final response = await http.get(
         Uri.parse(
-          "https:
+          "https://runner-api.medsoft.care/api/gateway/general/get/api/auth/qr/wait?id=$token",
         ),
         headers: headers,
       );
@@ -79,12 +79,12 @@ class _QrScanScreenState extends State<QrScanScreen> {
       if (!isScanned) {
         setState(() => isScanned = true);
 
-        
+        // *** CHANGE: Only pause the camera. Removing controller?.dispose() here.
         await controller?.pauseCamera();
-        
+        // The main thread is now free to update the UI and navigate.
 
-        
-        
+        // Use Future.microtask instead of Future.delayed(Duration.zero)
+        // for scheduling navigation immediately after the current build cycle.
         Future.microtask(() {
           _handleScannedToken(scanData.code ?? "");
         });

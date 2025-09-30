@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   bool _isPasswordLoginVisible = false;
   bool _isPasswordVisible = false;
   bool _isPasswordCheckVisible = false;
-  int _selectedToggleIndex = 0; 
+  int _selectedToggleIndex = 0; //0-Иргэн, 1-103
   double _dragPosition = 0.0;
 
   bool _isKeyboardVisible = false;
@@ -353,13 +353,13 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     }
   }
 
-  
+  /// Retrieve the saved scanned token from SharedPreferences
   Future<String?> getSavedToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('scannedToken');
   }
 
-  
+  /// Call the /wait and /attend endpoints with the scanned token
   Future<void> callWaitApi(BuildContext context, String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -380,7 +380,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       debugPrint('Login Wait API Response: ${waitResponse.body}');
 
       if (waitResponse.statusCode == 200) {
-        
+        // ✅ Success → go to ClaimQRScreen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
@@ -762,8 +762,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 ),
                 const SizedBox(height: 20),
 
-                
-                
+                // buildAnimatedToggle(),
+                // const SizedBox(height: 20),
                 if (_serverNames.isNotEmpty && _selectedToggleIndex == 0)
                   Container(
                     height: 56,
@@ -936,48 +936,48 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 if (_selectedToggleIndex == 0) const SizedBox(height: 20),
 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
+                // if (_selectedToggleIndex == 1)
+                //   TextFormField(
+                //     controller: _passwordController,
+                //     focusNode: _passwordFocus,
+                //     textInputAction: TextInputAction.done,
+                //     onFieldSubmitted: (_) {
+                //       FocusScope.of(context).unfocus();
+                //     },
+                //     obscureText: !_isPasswordVisible,
+                //     decoration: InputDecoration(
+                //       labelText: 'Нууц үг',
+                //       prefixIcon: const Icon(Icons.lock),
+                //       suffixIcon: Row(
+                //         mainAxisSize: MainAxisSize.min,
+                //         children: [
+                //           if (_passwordController.text.isNotEmpty)
+                //             IconButton(
+                //               icon: const Icon(Icons.clear),
+                //               onPressed: () {
+                //                 _passwordController.clear();
+                //                 setState(() {});
+                //               },
+                //             ),
+                //           IconButton(
+                //             icon: Icon(
+                //               _isPasswordVisible
+                //                   ? Icons.visibility
+                //                   : Icons.visibility_off,
+                //             ),
+                //             onPressed: () {
+                //               setState(() {
+                //                 _isPasswordVisible = !_isPasswordVisible;
+                //               });
+                //             },
+                //           ),
+                //         ],
+                //       ),
+                //       border: OutlineInputBorder(
+                //         borderRadius: BorderRadius.circular(12),
+                //       ),
+                //     ),
+                //   ),
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _passwordController,
@@ -1166,7 +1166,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                             MaterialPageRoute(
                               builder: (context) => WebViewScreen(
                                 url:
-                                    '$baseUrl/forget?callback=medsoftdoctor:
+                                    '$baseUrl/forget?callback=medsoftdoctor://callback',
                                 title: 'Нэвтрэх | ${hospital}',
                               ),
                             ),

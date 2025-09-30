@@ -271,8 +271,11 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       drawer: Drawer(
         child: Column(
+          // The main container must be a Column
           children: <Widget>[
+            // 1. DrawerHeader (Fixed Height)
             DrawerHeader(
+              // ... (your existing decoration and child)
               decoration: const BoxDecoration(
                 color: Color.fromARGB(255, 236, 169, 175),
               ),
@@ -284,42 +287,72 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
-            ListTile(
-              title: Center(
-                child: Text(
-                  username ?? 'Guest',
-                  style: const TextStyle(fontSize: 20),
-                ),
+
+            // 2. Scrollable Content Area (Uses Expanded to take up remaining space)
+            Expanded(
+              child: ListView(
+                // <--- Make the *middle* section scrollable
+                padding: EdgeInsets.zero,
+                children: <Widget>[
+                  // User Info
+                  ListTile(
+                    title: Center(
+                      child: Text(
+                        username ?? 'Guest',
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ),
+                  const Divider(),
+                  // Хэрэглэх заавар
+                  ListTile(
+                    leading: const Icon(
+                      Icons.info_outline,
+                      color: Colors.blueAccent,
+                    ),
+                    title: const Text(
+                      'Хэрэглэх заавар',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const GuideScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  // QR код унших
+                  ListTile(
+                    leading: const Icon(
+                      Icons.qr_code_scanner,
+                      color: Colors.green,
+                    ),
+                    title: const Text(
+                      'QR код унших',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const QrScanScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // Add extra scrollable padding here if needed, NOT outside the Column.
+                  // const SizedBox(height: 10),
+                ],
               ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.blueAccent),
-              title: const Text(
-                'Хэрэглэх заавар',
-                style: TextStyle(fontSize: 18),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const GuideScreen()),
-                );
-              },
-            ),
-            const Spacer(),
-            ListTile(
-              leading: const Icon(Icons.qr_code_scanner, color: Colors.green),
-              title: const Text('QR код унших', style: TextStyle(fontSize: 18)),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const QrScanScreen()),
-                );
-              },
             ),
 
+            // 3. Sticky Footer (Fixed Height)
+            // This part will be pushed to the very bottom.
             Container(
               margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -342,7 +375,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
               ),
             ),
-            const SizedBox(height: 50),
+
+            // Remove the large SizedBox(height: 50) and use a smaller margin if needed.
+            const SizedBox(height: 10),
           ],
         ),
       ),
