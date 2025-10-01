@@ -1,0 +1,75 @@
+{
+  "fill" : {
+    "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
+  },
+  "groups" : [
+    {
+      "blend-mode" : "darken",
+      "blur-material" : null,
+      "layers" : [
+        {
+          "glass" : false,
+          "hidden" : true,
+          "image-name" : "doctor_logo_trans_no_gap.png",
+          "name" : "doctor_logo_trans_no_gap"
+        },
+        {
+          "glass" : true,
+          "hidden" : true,
+          "image-name" : "doctor_logo_white_no_gap.png",
+          "name" : "doctor_logo_white_no_gap"
+        },
+        {
+          "glass" : true,
+          "hidden" : true,
+          "image-name" : "locationlogologin 2.png",
+          "name" : "locationlogologin 2"
+        },
+        {
+          "fill" : "none",
+          "glass" : true,
+          "hidden" : true,
+          "image-name" : "doctor_logo_login 4.png",
+          "name" : "doctor_logo_login 4",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              4,
+              0
+            ]
+          }
+        },
+        {
+          "fill" : "none",
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "doctor_logo_white.png",
+          "name" : "doctor_logo_white",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "none",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
