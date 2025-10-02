@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/qr_scan_screen.dart';
+import 'package:doctor_app/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:doctor_app/constants.dart';
@@ -256,6 +257,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF00CCCC),
@@ -344,6 +346,25 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     },
                   ),
+                  // ListTile(
+                  //   leading: const Icon(Icons.window, color: Colors.green),
+                  //   title: const Text(
+                  //     'Form test',
+                  //     style: TextStyle(fontSize: 18),
+                  //   ),
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => WebViewScreen(
+                  //           url: 'https://staging.medsoft.care/ambulanceApp/${prefs.getString('X-Tenant')}/formtest',
+                  //           title: 'Форм тест',
+                  //         ),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
 
                   // Add extra scrollable padding here if needed, NOT outside the Column.
                   // const SizedBox(height: 10),

@@ -60,76 +60,84 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 
+  Future<void> _handleRefresh() async {
+    await _controller.reload();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    return Scaffold(
-      resizeToAvoidBottomInset: false, // let WebView manage keyboard itself
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFF009688),
-        title: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.only(
-                  left: 12,
-                  right: 16,
-                  top: 1,
-                  bottom: 2,
-                ),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(25)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.arrow_back, color: Colors.black),
-                    const SizedBox(width: 8),
-                    Text(
-                      widget.title,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Returning false disables back gesture + back button
+        return false;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(
+            40,
+          ), // 👈 set your desired height
+          child: AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: const Color(0xFF009688),
+            title: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      right: 12,
+                      top: 1,
+                      bottom: 1,
                     ),
-                  ],
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(25)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.arrow_back,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Baseline(
+                          baselineType: TextBaseline.alphabetic,
+                          baseline: 15, // adjust until it aligns with icon
+                          child: Text(
+                            widget.title,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 5),
+                child: IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  iconSize: 20, // smaller icon
+                  tooltip: 'Refresh',
+                  onPressed: () => _controller.reload(),
                 ),
               ),
             ],
           ),
         ),
-      ),
-      body: SafeArea(
-        bottom: false, // allow full height, no extra space
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Container(
-                color: const Color(0xFFE2E4ED), // background for padding area
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      12,
-                    ), // optional rounded edges
-                    child: WebViewWidget(controller: _controller),
-                  ),
-                ),
-              ),
-            ),
-
-            Positioned(
-              top: 16,
-              right: 16,
-              child: _buildActionButton(
-                icon: Icons.refresh,
-                label: 'Refresh',
-                onPressed: () => _controller.reload(),
-              ),
-            ),
-          ],
+        body: SafeArea(
+          bottom: false,
+          child: WebViewWidget(controller: _controller),
         ),
       ),
     );

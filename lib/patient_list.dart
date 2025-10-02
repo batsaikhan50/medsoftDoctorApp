@@ -124,6 +124,17 @@ class PatientListScreenState extends State<PatientListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    
+    return FutureBuilder<SharedPreferences>(
+    future: SharedPreferences.getInstance(),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      final prefs = snapshot.data!;
+      final xMedsoftToken = prefs.getString('X-Medsoft-Token') ?? '';
+
     return Scaffold(
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -138,7 +149,8 @@ class PatientListScreenState extends State<PatientListScreen> {
                 final arrived = patient['arrived'] ?? false;
                 final distance = patient['totalDistance'];
                 final duration = patient['totalDuration'];
-
+                final roomId = patient['roomId'];
+                final xMedsoftToken = prefs.getString('X-Medsoft-Token') ?? '';
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8.0),
                   shape: RoundedRectangleBorder(
@@ -639,6 +651,27 @@ class PatientListScreenState extends State<PatientListScreen> {
                                 ),
                               ),
                             ),
+
+                            const SizedBox(width: 8), // spacing between buttons
+                            // Second button
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => WebViewScreen(
+                                        url:
+                                            'https://staging.medsoft.care/ambulanceApp/${roomId}/${xMedsoftToken}',
+                                            // 'https://100.100.10.100:5173/ambulanceApp/${roomId}/${xMedsoftToken}',
+                                        title: 'Форм тест',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Text("Ambulance"),
+                              ),
+                            ),
                           ],
                         ),
 
@@ -653,6 +686,8 @@ class PatientListScreenState extends State<PatientListScreen> {
                 );
               },
             ),
+    );
+    },
     );
   }
 }
