@@ -257,7 +257,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF00CCCC),
@@ -266,6 +265,10 @@ class _MyHomePageState extends State<MyHomePage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
+              debugPrint("Refreshing patient list");
+              if (_patientListKey.currentState == null) {
+                debugPrint("❌ _patientListKey.currentState is NULL");
+              }
               _patientListKey.currentState?.refreshPatients();
             },
           ),
