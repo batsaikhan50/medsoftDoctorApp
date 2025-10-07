@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
               List<Map<String, String>>.from(
                 data['data'].map<Map<String, String>>((server) {
                   return {
-                    'name': server['name'].toString(),
+                    'name': server['fullName'].toString(),
                     'domain': server['domain'].toString(),
                   };
                 }),
