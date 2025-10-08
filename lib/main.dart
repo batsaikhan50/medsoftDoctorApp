@@ -248,6 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
     await prefs.remove('X-Medsoft-Token');
     await prefs.remove('Username');
     await prefs.remove('scannedToken');
+    await prefs.remove('tenantDomain');
 
     Navigator.pushReplacement(
       context,

@@ -54,7 +54,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
       final response = await http.get(
         Uri.parse(
-          "https://runner-api.medsoft.care/api/gateway/general/get/api/auth/qr/wait?id=$token",
+          "${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token",
         ),
         headers: headers,
       );

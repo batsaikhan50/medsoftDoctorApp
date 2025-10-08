@@ -326,6 +326,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
           await prefs.remove('X-Medsoft-Token');
           await prefs.remove('Username');
           await prefs.remove('scannedToken');
+          await prefs.remove('tenantDomain');
 
           setState(() {
             _selectedToggleIndex = 0;
@@ -457,6 +458,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
           final String token = data['data']['token'];
 
           await prefs.setString('X-Tenant', _selectedRole?['name'] ?? '');
+          await prefs.setString('tenantDomain', _selectedRole?['domain'] ?? '');
           await prefs.setString('X-Medsoft-Token', token);
 
           debugPrint('Username controller: ${_usernameLoginController.text}');

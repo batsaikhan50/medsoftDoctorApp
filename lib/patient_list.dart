@@ -93,6 +93,7 @@ class PatientListScreenState extends State<PatientListScreen> {
     await prefs.remove('X-Medsoft-Token');
     await prefs.remove('Username');
     await prefs.remove('scannedToken');
+    await prefs.remove('tenantDomain');
 
     Navigator.pushReplacement(
       context,
@@ -169,6 +170,7 @@ class PatientListScreenState extends State<PatientListScreen> {
 
         final prefs = snapshot.data!;
         final xMedsoftToken = prefs.getString('X-Medsoft-Token') ?? '';
+        final tenantDomain = prefs.getString('tenantDomain') ?? '';
 
         return Scaffold(
           body: isLoading
@@ -281,7 +283,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                                             MaterialPageRoute(
                                               builder: (context) => WebViewScreen(
                                                 url:
-                                                    'https://staging.medsoft.care/ambulanceApp/${roomId}/${xMedsoftToken}',
+                                                    '${tenantDomain}/ambulanceApp/${roomId}/${xMedsoftToken}',
                                                 // 'https://100.100.10.100:5173/ambulanceApp/${roomId}/${xMedsoftToken}',
                                                 title: 'Форм тест',
                                               ),

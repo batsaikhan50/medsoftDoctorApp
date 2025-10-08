@@ -30,7 +30,7 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
 
       final response = await http.get(
         Uri.parse(
-          "https://runner-api.medsoft.care/api/gateway/general/get/api/auth/qr/claim?id=${widget.token}",
+          "${Constants.runnerUrl}/gateway/general/get/api/auth/qr/claim?id=${widget.token}",
         ),
         headers: headers,
       );
