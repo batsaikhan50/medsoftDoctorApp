@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:doctor_app/claim_qr.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:http/http.dart' as http;
@@ -650,58 +651,33 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   }
 
   KeyboardActionsConfig _buildKeyboardActionsConfig(BuildContext context) {
+    const Color iosToolbarColor = Color(0x00D8D7DE);
+
     return KeyboardActionsConfig(
-      keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
+      keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
       nextFocus: true,
-      keyboardBarColor: Colors.grey[200],
+      keyboardBarColor: iosToolbarColor,
       actions: [
         if (_selectedToggleIndex == 0)
           KeyboardActionsItem(
             focusNode: _usernameLoginFocus,
             displayArrows: true,
-            onTapAction: () => _scrollIntoView(_usernameLoginFocus),
+            displayDoneButton: false,
           ),
-        KeyboardActionsItem(
-          focusNode: _passwordLoginFocus,
-          displayArrows: true,
-          onTapAction: () => _scrollIntoView(_passwordLoginFocus),
-        ),
-        if (_selectedToggleIndex == 1) ...[
+
+        if (_selectedToggleIndex == 0)
           KeyboardActionsItem(
-            focusNode: _usernameFocus,
+            focusNode: _passwordLoginFocus,
             displayArrows: true,
-            onTapAction: () => _scrollIntoView(_usernameFocus),
+            displayDoneButton: false,
           ),
-          KeyboardActionsItem(
-            focusNode: _passwordFocus,
-            displayArrows: true,
-            onTapAction: () => _scrollIntoView(_passwordFocus),
-          ),
-          KeyboardActionsItem(
-            focusNode: _passwordCheckFocus,
-            displayArrows: true,
-            onTapAction: () => _scrollIntoView(_passwordCheckFocus),
-          ),
-          KeyboardActionsItem(
-            focusNode: _regNoFocus,
-            displayArrows: true,
-            onTapAction: () => _scrollIntoView(_regNoFocus),
-          ),
-          KeyboardActionsItem(
-            focusNode: _lastnameFocus,
-            displayArrows: true,
-            onTapAction: () => _scrollIntoView(_lastnameFocus),
-          ),
-          KeyboardActionsItem(
-            focusNode: _firstnameFocus,
-            displayArrows: true,
-            onTapAction: () => _scrollIntoView(_firstnameFocus),
-          ),
-        ],
       ],
     );
   }
 
+  // Remove the old _scrollIntoView function, as it's not used
+  // in this new KeyboardActionsConfig configuration.
+  // void _scrollIntoView(FocusNode focusNode) { ... }
   void _scrollIntoView(FocusNode focusNode) {
     final context = focusNode.context;
     if (context != null) {
