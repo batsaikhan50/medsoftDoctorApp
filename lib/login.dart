@@ -3,14 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:doctor_app/claim_qr.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:doctor_app/constants.dart';
+import 'package:doctor_app/main.dart';
+import 'package:doctor_app/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:http/http.dart' as http;
 import 'package:keyboard_actions/keyboard_actions.dart';
-import 'package:doctor_app/constants.dart';
-import 'package:doctor_app/main.dart';
-import 'package:doctor_app/webview_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -145,7 +144,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
               List<Map<String, String>>.from(
                 data['data'].map<Map<String, String>>((server) {
                   return {
-                    'name': server['fullName'].toString(),
+                    'name': server['name'].toString(),
+                    'fullName': server['fullName'].toString(),
                     'domain': server['domain'].toString(),
                   };
                 }),
@@ -321,12 +321,13 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         if (data['success'] == true) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
 
-          await prefs.setBool('isLoggedIn', false);
+          await prefs.remove('isLoggedIn');
           await prefs.remove('X-Tenant');
           await prefs.remove('X-Medsoft-Token');
           await prefs.remove('Username');
           await prefs.remove('scannedToken');
           await prefs.remove('tenantDomain');
+          await prefs.remove('forgetUrl');
 
           setState(() {
             _selectedToggleIndex = 0;
@@ -355,13 +356,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Retrieve the saved scanned token from SharedPreferences
   Future<String?> getSavedToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('scannedToken');
   }
 
-  /// Call the /wait and /attend endpoints with the scanned token
   Future<void> callWaitApi(BuildContext context, String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -382,7 +381,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       debugPrint('Login Wait API Response: ${waitResponse.body}');
 
       if (waitResponse.statusCode == 200) {
-        // ✅ Success → go to ClaimQRScreen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
@@ -408,35 +406,23 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       return;
     }
 
-    final body = _selectedRole?['name'] == 'Citizen'
-        ? {
-            'username': _usernameLoginController.text,
-            'password': _passwordLoginController.text,
-            'type': 'driver',
-          }
-        : {
-            'username': _usernameLoginController.text,
-            'password': _passwordLoginController.text,
-          };
+    final body = {
+      'username': _usernameLoginController.text,
+      'password': _passwordLoginController.text,
+    };
 
-    final headers = _selectedRole?['name'] == 'Citizen'
-        ? {'Content-Type': 'application/json'}
-        : {
-            'X-Token': Constants.xToken,
-            'X-Tenant': _selectedRole?['name'] ?? '',
-            'Content-Type': 'application/json',
-          };
+    final headers = {
+      'X-Token': Constants.xToken,
+      'X-Tenant': _selectedRole?['name'] ?? '',
+      'Content-Type': 'application/json',
+    };
 
     debugPrint('Request Headers: $headers');
     debugPrint('Request Body: ${json.encode(body)}');
 
     try {
       final response = await http.post(
-        Uri.parse(
-          _selectedRole?['name'] == 'Citizen'
-              ? '${Constants.appUrl}/auth/login'
-              : '${Constants.runnerUrl}/gateway/auth',
-        ),
+        Uri.parse('${Constants.runnerUrl}/gateway/auth'),
         headers: headers,
         body: json.encode(body),
       );
@@ -491,7 +477,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', false);
         setState(() {
-          _errorMessage = 'Нэвтрэх үед алдаа гарлаа. Дахин оролдоно уу.';
+          _errorMessage =
+              'Нэвтрэх нэр эсвэл нууц үг буруу байна. Дахин оролдоно уу.';
           _isLoading = false;
         });
       }
@@ -677,9 +664,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     );
   }
 
-  // Remove the old _scrollIntoView function, as it's not used
-  // in this new KeyboardActionsConfig configuration.
-  // void _scrollIntoView(FocusNode focusNode) { ... }
   void _scrollIntoView(FocusNode focusNode) {
     final context = focusNode.context;
     if (context != null) {
@@ -718,7 +702,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
-        top: 20,
+        top: MediaQuery.of(context).size.shortestSide >= 600 ? 200 : 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 32,
       ),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -740,8 +724,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 ),
                 const SizedBox(height: 20),
 
-                // buildAnimatedToggle(),
-                // const SizedBox(height: 20),
                 if (_serverNames.isNotEmpty && _selectedToggleIndex == 0)
                   Container(
                     height: 56,
@@ -787,7 +769,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                                 ) {
                                   return DropdownMenuItem<Map<String, String>>(
                                     value: value,
-                                    child: Text(value['name']!),
+                                    child: Text(value['fullName']!),
                                   );
                                 })
                                 .toList(),
@@ -914,48 +896,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 if (_selectedToggleIndex == 0) const SizedBox(height: 20),
 
-                // if (_selectedToggleIndex == 1)
-                //   TextFormField(
-                //     controller: _passwordController,
-                //     focusNode: _passwordFocus,
-                //     textInputAction: TextInputAction.done,
-                //     onFieldSubmitted: (_) {
-                //       FocusScope.of(context).unfocus();
-                //     },
-                //     obscureText: !_isPasswordVisible,
-                //     decoration: InputDecoration(
-                //       labelText: 'Нууц үг',
-                //       prefixIcon: const Icon(Icons.lock),
-                //       suffixIcon: Row(
-                //         mainAxisSize: MainAxisSize.min,
-                //         children: [
-                //           if (_passwordController.text.isNotEmpty)
-                //             IconButton(
-                //               icon: const Icon(Icons.clear),
-                //               onPressed: () {
-                //                 _passwordController.clear();
-                //                 setState(() {});
-                //               },
-                //             ),
-                //           IconButton(
-                //             icon: Icon(
-                //               _isPasswordVisible
-                //                   ? Icons.visibility
-                //                   : Icons.visibility_off,
-                //             ),
-                //             onPressed: () {
-                //               setState(() {
-                //                 _isPasswordVisible = !_isPasswordVisible;
-                //               });
-                //             },
-                //           ),
-                //         ],
-                //       ),
-                //       border: OutlineInputBorder(
-                //         borderRadius: BorderRadius.circular(12),
-                //       ),
-                //     ),
-                //   ),
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _passwordController,
@@ -1167,6 +1107,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                     ),
                   ),
 
+                if (_selectedToggleIndex == 0) const SizedBox(height: 20),
                 if (_selectedToggleIndex == 1) const SizedBox(height: 10),
 
                 ElevatedButton(

@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:doctor_app/login.dart';
 import 'package:doctor_app/webview_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:marquee/marquee.dart'; // Add in pubspec.yaml: marquee: ^2.3.0
 import '../constants.dart';
 
 class PatientListScreen extends StatefulWidget {
@@ -94,6 +93,7 @@ class PatientListScreenState extends State<PatientListScreen> {
     await prefs.remove('Username');
     await prefs.remove('scannedToken');
     await prefs.remove('tenantDomain');
+    await prefs.remove('forgetUrl');
 
     Navigator.pushReplacement(
       context,
@@ -120,17 +120,14 @@ class PatientListScreenState extends State<PatientListScreen> {
     });
   }
 
-  /// Helper to render HTML values properly (or just plain if no HTML)
   Widget _buildMultilineHTMLText(String value) {
     if (value.isEmpty) {
-      // Ensure spacing is preserved so layout doesn't collapse
       return Html(data: '');
     }
 
     return Html(data: value);
   }
 
-  /// Extract a single line containing a keyword from an HTML-ish string
   String _extractLine(String htmlValue, String keyword) {
     if (htmlValue.isEmpty) return '';
     final lines = htmlValue.split('<br>');
@@ -142,17 +139,14 @@ class PatientListScreenState extends State<PatientListScreen> {
     return '';
   }
 
-  /// Cut off receiver name part after Хүлээж авсан: line (rough heuristic)
   String _extractReceivedShort(String htmlValue) {
     if (htmlValue.isEmpty) return '';
     final lines = htmlValue.split('<br>');
     for (final line in lines) {
       if (line.contains('Хүлээж авсан')) {
         final clean = line.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-        // Example: "Хүлээж авсан: 2025.09.0109:45Э.Уранцэцэг" → cut name part
-        final idx = clean.indexOf(
-          RegExp(r'[А-ЯA-Z]\.'),
-        ); // name likely starts with capital + dot
+
+        final idx = clean.indexOf(RegExp(r'[А-ЯA-Z]\.'));
         return idx > 0 ? clean.substring(0, idx).trim() : clean;
       }
     }
@@ -171,6 +165,8 @@ class PatientListScreenState extends State<PatientListScreen> {
         final prefs = snapshot.data!;
         final xMedsoftToken = prefs.getString('X-Medsoft-Token') ?? '';
         final tenantDomain = prefs.getString('tenantDomain') ?? '';
+
+        final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
 
         return Scaffold(
           body: isLoading
@@ -261,36 +257,544 @@ class PatientListScreenState extends State<PatientListScreen> {
                                   ),
                                 const SizedBox(height: 8),
                                 Row(
+                                  mainAxisAlignment: isTablet
+                                      ? MainAxisAlignment.end
+                                      : MainAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        onPressed: arrived
-                                            ? () {
-                                                /* Arrived logic */
-                                              }
-                                            : null,
-                                        child: const Text(
-                                          "Үзлэг баталгаажуулах",
+                                    Flexible(
+                                      flex: 4,
+                                      child: SizedBox(
+                                        height: 48,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => WebViewScreen(
+                                                  url:
+                                                      '${tenantDomain}/ambulanceApp/${roomId}/${xMedsoftToken}',
+                                                  title: 'Форм тест',
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: const Text(
+                                            "Үзлэг",
+                                            textAlign: TextAlign.center,
+                                          ),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => WebViewScreen(
-                                                url:
-                                                    '${tenantDomain}/ambulanceApp/${roomId}/${xMedsoftToken}',
-                                                // 'https://100.100.10.100:5173/ambulanceApp/${roomId}/${xMedsoftToken}',
-                                                title: 'Форм тест',
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        child: const Text("Ambulance"),
+                                    Flexible(
+                                      flex: 6,
+                                      child: SizedBox(
+                                        height: 48,
+                                        child: ElevatedButton(
+                                          onPressed: !arrived
+                                              ? () async {
+                                                  final roomId =
+                                                      patient['roomId'];
+                                                  final phone =
+                                                      patient['patientPhone'];
+
+                                                  if (roomId == null ||
+                                                      phone == null) {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          'Room ID эсвэл утасны дугаар олдсонгүй',
+                                                        ),
+                                                        duration: Duration(
+                                                          seconds: 1,
+                                                        ),
+                                                      ),
+                                                    );
+                                                    return;
+                                                  }
+
+                                                  final rootContext = context;
+
+                                                  showDialog(
+                                                    context: rootContext,
+                                                    builder: (BuildContext dialogContext) {
+                                                      return AlertDialog(
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                16,
+                                                              ),
+                                                        ),
+                                                        titlePadding:
+                                                            const EdgeInsets.fromLTRB(
+                                                              24,
+                                                              24,
+                                                              24,
+                                                              0,
+                                                            ),
+                                                        title: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: const [
+                                                            Text(
+                                                              "Үзлэг баталгаажуулах",
+                                                              style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 20,
+                                                              ),
+                                                            ),
+                                                            SizedBox(height: 8),
+                                                            Divider(
+                                                              thickness: 1,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        content: Column(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .stretch,
+                                                          children: [
+                                                            const SizedBox(
+                                                              height: 8,
+                                                            ),
+                                                            Row(
+                                                              children: const [
+                                                                Icon(
+                                                                  Icons
+                                                                      .phone_iphone,
+                                                                  color: Colors
+                                                                      .cyan,
+                                                                ),
+                                                                SizedBox(
+                                                                  width: 8,
+                                                                ),
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    "Хэрвээ дуудлага өгсөн иргэн Medsoft аппликейшн ашигладаг бол:",
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 8,
+                                                            ),
+                                                            ElevatedButton(
+                                                              style: ElevatedButton.styleFrom(
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .white,
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      vertical:
+                                                                          14,
+                                                                    ),
+                                                                shape: RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        12,
+                                                                      ),
+                                                                ),
+                                                                shadowColor: Colors
+                                                                    .cyan
+                                                                    .withOpacity(
+                                                                      0.4,
+                                                                    ),
+                                                                elevation: 8,
+                                                              ),
+                                                              onPressed: () async {
+                                                                Navigator.of(
+                                                                  dialogContext,
+                                                                ).pop();
+
+                                                                final prefs =
+                                                                    await SharedPreferences.getInstance();
+                                                                final token =
+                                                                    prefs.getString(
+                                                                      'X-Medsoft-Token',
+                                                                    ) ??
+                                                                    '';
+                                                                final tenant =
+                                                                    prefs.getString(
+                                                                      'X-Tenant',
+                                                                    ) ??
+                                                                    '';
+
+                                                                final uri =
+                                                                    Uri.parse(
+                                                                      '${Constants.appUrl}/room/done_request_app?roomId=$roomId',
+                                                                    );
+
+                                                                try {
+                                                                  final response = await http.get(
+                                                                    uri,
+                                                                    headers: {
+                                                                      'X-Medsoft-Token':
+                                                                          token,
+                                                                      'X-Tenant':
+                                                                          tenant,
+                                                                      'X-Token':
+                                                                          Constants
+                                                                              .xToken,
+                                                                    },
+                                                                  );
+
+                                                                  if (response
+                                                                          .statusCode ==
+                                                                      200) {
+                                                                    debugPrint(
+                                                                      'done_request success: ${response.body}',
+                                                                    );
+                                                                    ScaffoldMessenger.of(
+                                                                      rootContext,
+                                                                    ).showSnackBar(
+                                                                      const SnackBar(
+                                                                        backgroundColor:
+                                                                            Colors.green,
+                                                                        content: Text(
+                                                                          'Иргэний апп руу хүсэлт илгээгдлээ',
+                                                                          style: TextStyle(
+                                                                            color:
+                                                                                Colors.white,
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  } else {
+                                                                    debugPrint(
+                                                                      'done_request failed: ${response.statusCode} ${response.body} ',
+                                                                    );
+                                                                    ScaffoldMessenger.of(
+                                                                      rootContext,
+                                                                    ).showSnackBar(
+                                                                      SnackBar(
+                                                                        content:
+                                                                            Text(
+                                                                              'Амжилтгүй: ${response.statusCode}',
+                                                                            ),
+                                                                      ),
+                                                                    );
+                                                                  }
+                                                                } catch (e) {
+                                                                  debugPrint(
+                                                                    'API error: $e',
+                                                                  );
+                                                                  ScaffoldMessenger.of(
+                                                                    rootContext,
+                                                                  ).showSnackBar(
+                                                                    const SnackBar(
+                                                                      content: Text(
+                                                                        'Алдаа гарлаа',
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                }
+                                                              },
+                                                              child: const Text(
+                                                                "Иргэний аппликейшн руу баталгаажуулах хүсэлт илгээх",
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                                style: TextStyle(
+                                                                  color: Colors
+                                                                      .black,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 20,
+                                                            ),
+                                                            Row(
+                                                              children: const [
+                                                                Icon(
+                                                                  Icons.message,
+                                                                  color: Colors
+                                                                      .orange,
+                                                                ),
+                                                                SizedBox(
+                                                                  width: 8,
+                                                                ),
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    "Хэрвээ дуудлага өгсөн иргэн Medsoft аппликейшн ашигладаггүй бол:",
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 8,
+                                                            ),
+                                                            ElevatedButton(
+                                                              style: ElevatedButton.styleFrom(
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .white,
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      vertical:
+                                                                          14,
+                                                                    ),
+                                                                shape: RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        12,
+                                                                      ),
+                                                                ),
+                                                                shadowColor: Colors
+                                                                    .orange
+                                                                    .withOpacity(
+                                                                      0.4,
+                                                                    ),
+                                                                elevation: 8,
+                                                              ),
+                                                              onPressed: () async {
+                                                                Navigator.of(
+                                                                  dialogContext,
+                                                                ).pop();
+
+                                                                final prefs =
+                                                                    await SharedPreferences.getInstance();
+                                                                final token =
+                                                                    prefs.getString(
+                                                                      'X-Medsoft-Token',
+                                                                    ) ??
+                                                                    '';
+                                                                const tenant =
+                                                                    'staging';
+
+                                                                final uri =
+                                                                    Uri.parse(
+                                                                      '${Constants.appUrl}/room/done_request_otp?roomId=$roomId',
+                                                                    );
+
+                                                                try {
+                                                                  final response = await http.get(
+                                                                    uri,
+                                                                    headers: {
+                                                                      'X-Medsoft-Token':
+                                                                          token,
+                                                                      'X-Tenant':
+                                                                          tenant,
+                                                                      'X-Token':
+                                                                          Constants
+                                                                              .xToken,
+                                                                    },
+                                                                  );
+
+                                                                  if (response.statusCode ==
+                                                                          200 ||
+                                                                      response.statusCode ==
+                                                                          429) {
+                                                                    debugPrint(
+                                                                      ' done_request_otp success: ${response.body}',
+                                                                    );
+                                                                    ScaffoldMessenger.of(
+                                                                      rootContext,
+                                                                    ).showSnackBar(
+                                                                      const SnackBar(
+                                                                        content:
+                                                                            Text(
+                                                                              'Иргэний утас руу OTP илгээгдлээ',
+                                                                            ),
+                                                                      ),
+                                                                    );
+
+                                                                    final TextEditingController
+                                                                    otpController =
+                                                                        TextEditingController();
+
+                                                                    showDialog(
+                                                                      context:
+                                                                          rootContext,
+                                                                      barrierDismissible:
+                                                                          false,
+                                                                      builder:
+                                                                          (
+                                                                            BuildContext
+                                                                            context,
+                                                                          ) {
+                                                                            return AlertDialog(
+                                                                              title: const Text(
+                                                                                'OTP оруулах',
+                                                                              ),
+                                                                              content: TextField(
+                                                                                controller: otpController,
+                                                                                keyboardType: TextInputType.number,
+                                                                                maxLength: 6,
+                                                                                decoration: const InputDecoration(
+                                                                                  hintText: '6 оронтой OTP',
+                                                                                  counterText: '',
+                                                                                ),
+                                                                              ),
+                                                                              actions: [
+                                                                                TextButton(
+                                                                                  onPressed: () {
+                                                                                    Navigator.of(
+                                                                                      context,
+                                                                                    ).pop();
+                                                                                  },
+                                                                                  child: const Text(
+                                                                                    'Буцах',
+                                                                                  ),
+                                                                                ),
+                                                                                ElevatedButton(
+                                                                                  onPressed: () async {
+                                                                                    final otp = otpController.text.trim();
+
+                                                                                    if (otp.length ==
+                                                                                        6) {
+                                                                                      try {
+                                                                                        final doneUri = Uri.parse(
+                                                                                          '${Constants.appUrl}/room/done',
+                                                                                        );
+
+                                                                                        final doneResponse = await http.post(
+                                                                                          doneUri,
+                                                                                          headers: {
+                                                                                            'Content-Type': 'application/json',
+                                                                                            'X-Medsoft-Token': token,
+                                                                                            'X-Tenant': tenant,
+                                                                                            'X-Token': Constants.xToken,
+                                                                                          },
+                                                                                          body: jsonEncode(
+                                                                                            {
+                                                                                              'roomId': roomId,
+                                                                                              'otp': otp,
+                                                                                            },
+                                                                                          ),
+                                                                                        );
+
+                                                                                        if (doneResponse.statusCode ==
+                                                                                            200) {
+                                                                                          Navigator.of(
+                                                                                            context,
+                                                                                          ).pop();
+                                                                                          ScaffoldMessenger.of(
+                                                                                            rootContext,
+                                                                                          ).showSnackBar(
+                                                                                            const SnackBar(
+                                                                                              content: Text(
+                                                                                                ' Амжилттай баталгаажлаа',
+                                                                                              ),
+                                                                                            ),
+                                                                                          );
+                                                                                        } else {
+                                                                                          ScaffoldMessenger.of(
+                                                                                            rootContext,
+                                                                                          ).showSnackBar(
+                                                                                            SnackBar(
+                                                                                              content: Text(
+                                                                                                'Алдаа: ${doneResponse.statusCode}',
+                                                                                              ),
+                                                                                            ),
+                                                                                          );
+                                                                                        }
+                                                                                      } catch (
+                                                                                        e
+                                                                                      ) {
+                                                                                        debugPrint(
+                                                                                          'done error: $e',
+                                                                                        );
+                                                                                        ScaffoldMessenger.of(
+                                                                                          rootContext,
+                                                                                        ).showSnackBar(
+                                                                                          const SnackBar(
+                                                                                            content: Text(
+                                                                                              'Сүлжээний алдаа',
+                                                                                            ),
+                                                                                          ),
+                                                                                        );
+                                                                                      }
+                                                                                    } else {
+                                                                                      ScaffoldMessenger.of(
+                                                                                        rootContext,
+                                                                                      ).showSnackBar(
+                                                                                        const SnackBar(
+                                                                                          content: Text(
+                                                                                            'OTP 6 оронтой байх ёстой',
+                                                                                          ),
+                                                                                        ),
+                                                                                      );
+                                                                                    }
+                                                                                  },
+                                                                                  child: const Text(
+                                                                                    'Шалгах',
+                                                                                  ),
+                                                                                ),
+                                                                              ],
+                                                                            );
+                                                                          },
+                                                                    );
+                                                                  } else {
+                                                                    debugPrint(
+                                                                      'done_request_otp failed: ${response.statusCode} ${response.body}',
+                                                                    );
+                                                                    ScaffoldMessenger.of(
+                                                                      rootContext,
+                                                                    ).showSnackBar(
+                                                                      SnackBar(
+                                                                        content:
+                                                                            Text(
+                                                                              'Амжилтгүй: ${response.statusCode}',
+                                                                            ),
+                                                                      ),
+                                                                    );
+                                                                  }
+                                                                } catch (e) {
+                                                                  debugPrint(
+                                                                    'API error: $e',
+                                                                  );
+                                                                  ScaffoldMessenger.of(
+                                                                    rootContext,
+                                                                  ).showSnackBar(
+                                                                    const SnackBar(
+                                                                      content: Text(
+                                                                        'Алдаа гарлаа',
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                }
+                                                              },
+                                                              child: const Text(
+                                                                "Иргэний утасны дугаар руу OTP илгээх",
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                                style: TextStyle(
+                                                                  color: Colors
+                                                                      .black,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.of(
+                                                                  dialogContext,
+                                                                ).pop(),
+                                                            child: const Text(
+                                                              "Буцах",
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      );
+                                                    },
+                                                  );
+                                                }
+                                              : null,
+                                          child: const Text(
+                                            "Баталгаажуулах",
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -301,7 +805,6 @@ class PatientListScreenState extends State<PatientListScreen> {
                             expandedCrossAxisAlignment:
                                 CrossAxisAlignment.start,
                             children: [
-                              // Only show expanded content here
                               const Text(
                                 'Иргэн:',
                                 style: TextStyle(

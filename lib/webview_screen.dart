@@ -68,15 +68,12 @@ class _WebViewScreenState extends State<WebViewScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Returning false disables back gesture + back button
         return false;
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(
-            40,
-          ), // 👈 set your desired height
+          preferredSize: const Size.fromHeight(40),
           child: AppBar(
             automaticallyImplyLeading: false,
             backgroundColor: const Color(0xFF009688),
@@ -106,7 +103,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                         const SizedBox(width: 4),
                         Baseline(
                           baselineType: TextBaseline.alphabetic,
-                          baseline: 15, // adjust until it aligns with icon
+                          baseline: 15,
                           child: Text(
                             widget.title,
                             style: const TextStyle(
@@ -127,7 +124,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 padding: const EdgeInsets.only(right: 5),
                 child: IconButton(
                   icon: const Icon(Icons.refresh, color: Colors.white),
-                  iconSize: 20, // smaller icon
+                  iconSize: 20,
                   tooltip: 'Refresh',
                   onPressed: () => _controller.reload(),
                 ),

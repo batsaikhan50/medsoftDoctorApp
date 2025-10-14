@@ -59,6 +59,6 @@
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
 		<key>NSCameraUsageDescription</key>
-		<string>Энэ апп QR код скан хийхийн тулд таны камерыг ашиглана.</string>
+		<string>This app uses your camera to scan QR codes.</string>
 	</dict>
 </plist>

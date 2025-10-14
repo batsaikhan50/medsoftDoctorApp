@@ -1,8 +1,10 @@
 import 'dart:developer';
+
 import 'package:doctor_app/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'main.dart';
 
 class ClaimQRScreen extends StatefulWidget {
@@ -40,17 +42,14 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
         claimSuccessful = true;
       } else {
         log("Claim failed: ${response.statusCode}");
-       
       }
     } catch (e) {
       log("Error calling claim API: $e");
-     
     }
 
     if (!mounted) return;
 
     if (claimSuccessful) {
-     
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
@@ -59,11 +58,10 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
         (route) => false,
       );
     } else {
-     
       setState(() {
         _isLoading = false;
       });
-     
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Баталгаажуулалт амжилтгүй боллоо."),
@@ -92,9 +90,7 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
               onPressed: _isLoading
                   ? null
                   : () {
-                      setState(
-                        () => _isLoading = true,
-                      );
+                      setState(() => _isLoading = true);
                       Future.microtask(() => _claim());
                     },
               style: ElevatedButton.styleFrom(

@@ -1,16 +1,17 @@
 import 'dart:async';
+
 import 'package:doctor_app/claim_qr.dart';
-import 'package:doctor_app/qr_scan_screen.dart';
-import 'package:doctor_app/webview_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:doctor_app/guide.dart';
 import 'package:doctor_app/patient_list.dart';
+import 'package:doctor_app/qr_scan_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login.dart';
 import 'package:uni_links/uni_links.dart';
+
+import 'login.dart';
 
 void main() {
   runApp(const MyApp());
@@ -249,6 +250,7 @@ class _MyHomePageState extends State<MyHomePage> {
     await prefs.remove('Username');
     await prefs.remove('scannedToken');
     await prefs.remove('tenantDomain');
+    await prefs.remove('forgetUrl');
 
     Navigator.pushReplacement(
       context,
@@ -268,7 +270,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               debugPrint("Refreshing patient list");
               if (_patientListKey.currentState == null) {
-                debugPrint("❌ _patientListKey.currentState is NULL");
+                debugPrint("_patientListKey.currentState is NULL");
               }
               _patientListKey.currentState?.refreshPatients();
             },
@@ -277,11 +279,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       drawer: Drawer(
         child: Column(
-          // The main container must be a Column
           children: <Widget>[
-            // 1. DrawerHeader (Fixed Height)
             DrawerHeader(
-              // ... (your existing decoration and child)
               decoration: const BoxDecoration(
                 color: Color.fromARGB(255, 236, 169, 175),
               ),
@@ -294,13 +293,10 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
 
-            // 2. Scrollable Content Area (Uses Expanded to take up remaining space)
             Expanded(
               child: ListView(
-                // <--- Make the *middle* section scrollable
                 padding: EdgeInsets.zero,
                 children: <Widget>[
-                  // User Info
                   ListTile(
                     title: Center(
                       child: Text(
@@ -310,7 +306,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                   const Divider(),
-                  // Хэрэглэх заавар
+
                   ListTile(
                     leading: const Icon(
                       Icons.info_outline,
@@ -330,7 +326,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     },
                   ),
-                  // QR код унших
+
                   ListTile(
                     leading: const Icon(
                       Icons.qr_code_scanner,
@@ -350,34 +346,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     },
                   ),
-                  // ListTile(
-                  //   leading: const Icon(Icons.window, color: Colors.green),
-                  //   title: const Text(
-                  //     'Form test',
-                  //     style: TextStyle(fontSize: 18),
-                  //   ),
-                  //   onTap: () {
-                  //     Navigator.pop(context);
-                  //     Navigator.push(
-                  //       context,
-                  //       MaterialPageRoute(
-                  //         builder: (context) => WebViewScreen(
-                  //           url: 'https://staging.medsoft.care/ambulanceApp/${prefs.getString('X-Tenant')}/formtest',
-                  //           title: 'Форм тест',
-                  //         ),
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
-
-                  // Add extra scrollable padding here if needed, NOT outside the Column.
-                  // const SizedBox(height: 10),
                 ],
               ),
             ),
 
-            // 3. Sticky Footer (Fixed Height)
-            // This part will be pushed to the very bottom.
             Container(
               margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -401,7 +373,6 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
 
-            // Remove the large SizedBox(height: 50) and use a smaller margin if needed.
             const SizedBox(height: 10),
           ],
         ),

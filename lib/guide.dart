@@ -4,18 +4,6 @@ class GuideScreen extends StatelessWidget {
   const GuideScreen({super.key});
 
   final List<Map<String, String>> guideSteps = const [
-    // {
-    //   'caption': 'Алхам 1: "Location" -> "Always" тохиргоог асаах',
-    //   'asset': 'assets/guide/always.png',
-    // },
-    // {
-    //   'caption': 'Алхам 2: "Location" -> "Precise Location" тохиргоог асаах',
-    //   'asset': 'assets/guide/precise.png',
-    // },
-    // {
-    //   'caption': 'Алхам 3: "Background App Refresh" тохиргоог асаах',
-    //   'asset': 'assets/guide/background.png',
-    // },
     {
       'caption': '"Cellural Data" тохиргоог асаах',
       'asset': 'assets/guide/celluralData.png',
@@ -35,7 +23,7 @@ class GuideScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final step = guideSteps[index];
           return _buildGuideAccordion(
-            context: context, // ✅ Add this line
+            context: context,
             caption: step['caption']!,
             assetPath: step['asset']!,
           );
