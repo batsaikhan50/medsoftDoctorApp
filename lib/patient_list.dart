@@ -291,7 +291,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                                       child: SizedBox(
                                         height: 48,
                                         child: ElevatedButton(
-                                          onPressed: !arrived
+                                          onPressed: arrived
                                               ? () async {
                                                   final roomId =
                                                       patient['roomId'];
