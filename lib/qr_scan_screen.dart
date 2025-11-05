@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,7 +21,33 @@ class _QrScanScreenState extends State<QrScanScreen> {
   bool isScanned = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final shortestSide = MediaQuery.of(context).size.shortestSide;
+      debugPrint('shortestSide : $shortestSide');
+
+      const double tabletBreakpoint = 600;
+
+      if (shortestSide < tabletBreakpoint) {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      } else {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     controller?.dispose();
     super.dispose();
   }
@@ -51,9 +78,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
       };
 
       final response = await http.get(
-        Uri.parse(
-          "${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token",
-        ),
+        Uri.parse("${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token"),
         headers: headers,
       );
 
@@ -88,19 +113,41 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine the size of the square cutout area
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Calculate scan area based on a percentage of the smaller dimension,
+    // capped at a maximum (to avoid being too large on tablets).
+    const maxScanArea = 350.0;
+    final proportionalSize = (screenWidth < screenHeight ? screenWidth : screenHeight) * 0.9;
+    final scanArea = proportionalSize < maxScanArea ? proportionalSize : maxScanArea;
+
     return Scaffold(
       appBar: AppBar(title: const Text("QR код унших")),
       body: Column(
         children: [
           Expanded(
             flex: 5,
-            child: QRView(key: qrKey, onQRViewCreated: _onQRViewCreated),
+            child: AspectRatio(
+              aspectRatio: 1.0,
+              child: QRView(
+                key: qrKey,
+                onQRViewCreated: _onQRViewCreated,
+                overlay: QrScannerOverlayShape(
+                  borderColor: const Color(0xFF00CCCC), // corner color
+                  borderRadius: 15, // rounded corners
+                  borderLength: 50, // long corners
+                  borderWidth: 15, // thick corners
+                  cutOutSize: scanArea, // center square size
+                  overlayColor: const Color(0xFFFDF7FE), // background outside cutout
+                ),
+              ),
+            ),
           ),
           const Expanded(
             flex: 1,
-            child: Center(
-              child: Text("QR кодоо камерын хүрээнд байрлуулна уу."),
-            ),
+            child: Center(child: Text("QR кодоо камерын хүрээнд байрлуулна уу.")),
           ),
         ],
       ),
