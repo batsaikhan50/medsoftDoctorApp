@@ -151,7 +151,7 @@ class PatientListScreenState extends State<PatientListScreen> {
   }
 
   // --- NEW HELPER METHOD 1: Vuzleg Button ---
-  Widget _buildVuzlegButton(
+  Widget _buildUzlegButton(
     BuildContext context,
     String? roomId,
     String xMedsoftToken,
@@ -612,7 +612,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                                           isNarrowScreen
                                               ? Expanded(
                                                   flex: 4,
-                                                  child: _buildVuzlegButton(
+                                                  child: _buildUzlegButton(
                                                     context,
                                                     roomId,
                                                     xMedsoftToken,
@@ -621,7 +621,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                                                 )
                                               : Expanded(
                                                   flex: 5,
-                                                  child: _buildVuzlegButton(
+                                                  child: _buildUzlegButton(
                                                     context,
                                                     roomId,
                                                     xMedsoftToken,
