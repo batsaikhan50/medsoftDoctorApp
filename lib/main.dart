@@ -25,20 +25,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
       home: FutureBuilder<Widget>(
         future: _getInitialScreen(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
           } else if (snapshot.hasError) {
-            return const Scaffold(
-              body: Center(child: Text("Error checking login status")),
-            );
+            return const Scaffold(body: Center(child: Text("Error checking login status")));
           } else if (snapshot.hasData) {
             return snapshot.data!;
           } else {
@@ -52,7 +46,7 @@ class MyApp extends StatelessWidget {
   Future<Widget> _getInitialScreen() async {
     final prefs = await SharedPreferences.getInstance();
     final initialLink = await getInitialLink();
-    debugPrint("INMY MAIN'S _getInitialScreen initialLink: ${initialLink}");
+    debugPrint("INMY MAIN'S _getInitialScreen initialLink: $initialLink");
 
     if (initialLink != null) {
       Uri uri = Uri.parse(initialLink);
@@ -89,8 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String? username;
   Map<String, dynamic> sharedPreferencesData = {};
 
-  final GlobalKey<PatientListScreenState> _patientListKey =
-      GlobalKey<PatientListScreenState>();
+  final GlobalKey<PatientListScreenState> _patientListKey = GlobalKey<PatientListScreenState>();
 
   static const String xToken = Constants.xToken;
 
@@ -117,14 +110,8 @@ class _MyHomePageState extends State<MyHomePage> {
         final server = prefs.getString('X-Tenant') ?? '';
 
         final waitResponse = await http.get(
-          Uri.parse(
-            '${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token',
-          ),
-          headers: {
-            'X-Medsoft-Token': tokenSaved,
-            'X-Tenant': server,
-            'X-Token': Constants.xToken,
-          },
+          Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
+          headers: {'X-Medsoft-Token': tokenSaved, 'X-Tenant': server, 'X-Token': Constants.xToken},
         );
 
         debugPrint('Main Wait API Response: ${waitResponse.body}');
@@ -156,10 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
 
           if (waitSuccess && mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)),
-            );
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)));
           }
         }
       }
@@ -196,35 +180,33 @@ class _MyHomePageState extends State<MyHomePage> {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('app_icon');
 
-    const DarwinInitializationSettings initializationSettingsIOS =
-        DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        );
+    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
 
-    final InitializationSettings initializationSettings =
-        InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsIOS,
-        );
+    final InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   Future<void> _showNotification() async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-          'your_channel_id',
-          'your_channel_name',
-          channelDescription: 'Your channel description',
-          importance: Importance.max,
-          priority: Priority.high,
-          showWhen: false,
-        );
+    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'your_channel_id',
+      'your_channel_name',
+      channelDescription: 'Your channel description',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+    );
 
-    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
-        DarwinNotificationDetails(badgeNumber: 1);
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics = DarwinNotificationDetails(
+      badgeNumber: 1,
+    );
 
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
@@ -281,15 +263,9 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           children: <Widget>[
             DrawerHeader(
-              decoration: const BoxDecoration(
-                color: Color.fromARGB(255, 236, 169, 175),
-              ),
+              decoration: const BoxDecoration(color: Color.fromARGB(255, 236, 169, 175)),
               child: Center(
-                child: Image.asset(
-                  'assets/icon/doctor_logo_login.png',
-                  width: 150,
-                  height: 150,
-                ),
+                child: Image.asset('assets/icon/doctor_logo_login.png', width: 150, height: 150),
               ),
             ),
 
@@ -299,50 +275,31 @@ class _MyHomePageState extends State<MyHomePage> {
                 children: <Widget>[
                   ListTile(
                     title: Center(
-                      child: Text(
-                        username ?? 'Guest',
-                        style: const TextStyle(fontSize: 20),
-                      ),
+                      child: Text(username ?? 'Guest', style: const TextStyle(fontSize: 20)),
                     ),
                   ),
                   const Divider(),
 
                   ListTile(
-                    leading: const Icon(
-                      Icons.info_outline,
-                      color: Colors.blueAccent,
-                    ),
-                    title: const Text(
-                      'Хэрэглэх заавар',
-                      style: TextStyle(fontSize: 18),
-                    ),
+                    leading: const Icon(Icons.info_outline, color: Colors.blueAccent),
+                    title: const Text('Хэрэглэх заавар', style: TextStyle(fontSize: 18)),
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const GuideScreen(),
-                        ),
+                        MaterialPageRoute(builder: (context) => const GuideScreen()),
                       );
                     },
                   ),
 
                   ListTile(
-                    leading: const Icon(
-                      Icons.qr_code_scanner,
-                      color: Colors.green,
-                    ),
-                    title: const Text(
-                      'QR код унших',
-                      style: TextStyle(fontSize: 18),
-                    ),
+                    leading: const Icon(Icons.qr_code_scanner, color: Colors.green),
+                    title: const Text('QR код унших', style: TextStyle(fontSize: 18)),
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const QrScanScreen(),
-                        ),
+                        MaterialPageRoute(builder: (context) => const QrScanScreen()),
                       );
                     },
                   ),
