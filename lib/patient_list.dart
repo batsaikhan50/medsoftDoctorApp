@@ -207,12 +207,13 @@ class PatientListScreenState extends State<PatientListScreen> {
                         ? MainAxisAlignment
                               .start // Align to start on narrow screens (portrait phones)
                         : MainAxisAlignment
-                              .end; // Align to end on wider screens (landscape, tablets)
+                              .center; // Align to end on wider screens (landscape, tablets)
                     // ---------------------------------------------------
                     return Center(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: isTablet ? 600 : 700),
                         child: Card(
+                          color: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 3,
                           margin: const EdgeInsets.symmetric(vertical: 6.0),
