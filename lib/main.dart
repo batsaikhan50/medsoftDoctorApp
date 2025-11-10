@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:doctor_app/guide.dart';
@@ -80,6 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  final _authDao = AuthDAO();
   String? username;
   Map<String, dynamic> sharedPreferencesData = {};
 
@@ -98,23 +100,24 @@ class _MyHomePageState extends State<MyHomePage> {
       await prefs.setString('scannedToken', token);
     }
 
-    Future<String?> getSavedToken() async {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('scannedToken');
-    }
+    // Future<String?> getSavedToken() async {
+    //   final prefs = await SharedPreferences.getInstance();
+    //   return prefs.getString('scannedToken');
+    // }
 
     Future<bool> callWaitApi(String token) async {
       try {
-        final prefs = await SharedPreferences.getInstance();
-        final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
-        final server = prefs.getString('X-Tenant') ?? '';
+        // final prefs = await SharedPreferences.getInstance();
+        // final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
+        // final server = prefs.getString('X-Tenant') ?? '';
 
-        final waitResponse = await http.get(
-          Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
-          headers: {'X-Medsoft-Token': tokenSaved, 'X-Tenant': server, 'X-Token': Constants.xToken},
-        );
+        // final waitResponse = await http.get(
+        //   Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
+        //   headers: {'X-Medsoft-Token': tokenSaved, 'X-Tenant': server, 'X-Token': Constants.xToken},
+        // );
+        final waitResponse = await _authDao.waitQR(token);
 
-        debugPrint('Main Wait API Response: ${waitResponse.body}');
+        debugPrint('Main Wait API Response: ${waitResponse.data}');
 
         if (waitResponse.statusCode == 200) {
           return true;

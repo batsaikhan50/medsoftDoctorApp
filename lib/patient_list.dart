@@ -157,7 +157,7 @@ class PatientListScreenState extends State<PatientListScreen> {
     String xMedsoftToken,
     double buttonFontSize,
   ) {
-    final tenantDomain = sharedPreferencesData['X-Tenant'] ?? '';
+    final tenantDomain = sharedPreferencesData['tenantDomain'] ?? '';
 
     return SizedBox(
       height: 48,

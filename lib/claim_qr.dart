@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -16,6 +17,7 @@ class ClaimQRScreen extends StatefulWidget {
 }
 
 class _ClaimQRScreenState extends State<ClaimQRScreen> {
+  final _authDao = AuthDAO();
   bool _isLoading = false;
 
   Future<void> _claim() async {
@@ -30,12 +32,14 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
         'X-Token': Constants.xToken,
       };
 
-      final response = await http.get(
-        Uri.parse(
-          "${Constants.runnerUrl}/gateway/general/get/api/auth/qr/claim?id=${widget.token}",
-        ),
-        headers: headers,
-      );
+      final response = await _authDao.claimQR(widget.token);
+
+      // final response = await http.get(
+      //   Uri.parse(
+      //     "${Constants.runnerUrl}/gateway/general/get/api/auth/qr/claim?id=${widget.token}",
+      //   ),
+      //   headers: headers,
+      // );
 
       if (response.statusCode == 200) {
         log("Claim success");
@@ -52,9 +56,7 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
     if (claimSuccessful) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => const MyHomePage(title: "Дуудлагын жагсаалт"),
-        ),
+        MaterialPageRoute(builder: (_) => const MyHomePage(title: "Дуудлагын жагсаалт")),
         (route) => false,
       );
     } else {
@@ -95,15 +97,11 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 15,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
               ),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, anim) =>
-                    FadeTransition(opacity: anim, child: child),
+                transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
                 child: _isLoading
                     ? Row(
                         key: const ValueKey('loading'),
@@ -112,16 +110,10 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
                           SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           ),
                           SizedBox(width: 12),
-                          Text(
-                            "Уншиж байна...",
-                            style: TextStyle(fontSize: 18),
-                          ),
+                          Text("Уншиж байна...", style: TextStyle(fontSize: 18)),
                         ],
                       )
                     : const Text(
@@ -141,17 +133,13 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const MyHomePage(title: "Дуудлагын жагсаалт"),
+                          builder: (_) => const MyHomePage(title: "Дуудлагын жагсаалт"),
                         ),
                       );
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 15,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
               ),
               child: const Text("Татгалзах", style: TextStyle(fontSize: 18)),
             ),

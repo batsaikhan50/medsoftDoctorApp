@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:doctor_app/main.dart';
@@ -21,6 +22,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
+  final _authDao = AuthDAO();
   final TextEditingController _usernameLoginController = TextEditingController();
   final TextEditingController _passwordLoginController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
@@ -135,42 +137,44 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _fetchServerData() async {
-    const url = '${Constants.runnerUrl}/gateway/servers';
-    final headers = {'X-Token': Constants.xToken};
+    // 1. Call the DAO function
+    final result = await _authDao.getHospitals();
 
-    try {
-      final response = await http.get(Uri.parse(url), headers: headers);
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true) {
-          final List<Map<String, String>> serverNames = List<Map<String, String>>.from(
-            data['data'].map<Map<String, String>>((server) {
+    setState(() {
+      // 2. Check for overall success (HTTP 200, and API 'success': true)
+      if (result.success && result.data != null) {
+        // 3. Map the List<dynamic> data into the required List<Map<String, String>> format
+        final List<Map<String, String>> serverNames = result.data!
+            .whereType<Map<String, dynamic>>() // Ensure we only process maps
+            .map<Map<String, String>>((server) {
               return {
-                'name': server['name'].toString(),
-                'fullName': server['fullName'].toString(),
-                'domain': server['domain'].toString(),
+                'name': server['name']?.toString() ?? '',
+                'fullName': server['fullName']?.toString() ?? '',
+                'domain': server['domain']?.toString() ?? '',
               };
-            }),
-          );
+            })
+            .toList();
 
-          setState(() {
-            _serverNames = serverNames;
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'Эмнэлгүүдийг дуудах үйлдэл амжилтгүй боллоо.';
-          });
-        }
+        _serverNames = serverNames;
+        _errorMessage = ''; // Clear any previous error
       } else {
-        setState(() {
-          _errorMessage = 'Серверийн мэдээлэл авахад алдаа гарлаа.';
-        });
+        // 4. Handle error cases
+        final String statusDetail = result.statusCode != null
+            ? ' (Статус: ${result.statusCode})'
+            : '';
+
+        if (result.statusCode == 200) {
+          // API returned success: false (handled by result.message)
+          _errorMessage = result.message ?? 'Эмнэлгүүдийг дуудах үйлдэл амжилтгүй боллоо.';
+        } else if (result.message?.contains('Invalid response format') == true) {
+          // Network/parsing error (handled by DAO's catch block)
+          _errorMessage = 'Алдаа гарлаа: ${result.message}';
+        } else {
+          // HTTP error (non-200) or other generic failure
+          _errorMessage = 'Серверийн мэдээлэл авахад алдаа гарлаа$statusDetail.';
+        }
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Алдаа гарлаа: $e';
-      });
-    }
+    });
   }
 
   void _updatePasswordRules() {
@@ -298,75 +302,75 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     return allPassed && passwordMatchError == null && _regNoValidationError == null;
   }
 
-  Future<void> _register() async {
-    setState(() {
-      _isLoading = true;
-    });
+  // Future<void> _register() async {
+  //   setState(() {
+  //     _isLoading = true;
+  //   });
 
-    final body = {
-      'username': _usernameController.text,
-      'password': _passwordController.text,
-      'passwordConfirm': _passwordCheckController.text,
-      'regNo': _regNoController.text,
-      'firstname': _firstnameController.text,
-      'lastname': _lastnameController.text,
-      'type': 'driver',
-    };
+  //   final body = {
+  //     'username': _usernameController.text,
+  //     'password': _passwordController.text,
+  //     'passwordConfirm': _passwordCheckController.text,
+  //     'regNo': _regNoController.text,
+  //     'firstname': _firstnameController.text,
+  //     'lastname': _lastnameController.text,
+  //     'type': 'driver',
+  //   };
 
-    final headers = {'Content-Type': 'application/json'};
+  //   final headers = {'Content-Type': 'application/json'};
 
-    debugPrint('Request Headers: $headers');
-    debugPrint('Request Body: ${json.encode(body)}');
+  //   debugPrint('Request Headers: $headers');
+  //   debugPrint('Request Body: ${json.encode(body)}');
 
-    try {
-      final response = await http.post(
-        Uri.parse('${Constants.appUrl}/auth/signup'),
-        headers: headers,
-        body: json.encode(body),
-      );
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse('${Constants.appUrl}/auth/signup'),
+  //       headers: headers,
+  //       body: json.encode(body),
+  //     );
 
-      debugPrint('Register response Status: ${response.statusCode}');
-      debugPrint('Register response Body: ${response.body}');
+  //     debugPrint('Register response Status: ${response.statusCode}');
+  //     debugPrint('Register response Body: ${response.body}');
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true) {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
+  //     if (response.statusCode == 200) {
+  //       final Map<String, dynamic> data = json.decode(response.body);
+  //       if (data['success'] == true) {
+  //         SharedPreferences prefs = await SharedPreferences.getInstance();
 
-          await prefs.remove('isLoggedIn');
-          await prefs.remove('X-Tenant');
-          await prefs.remove('X-Medsoft-Token');
-          await prefs.remove('Username');
-          await prefs.remove('scannedToken');
-          await prefs.remove('tenantDomain');
-          await prefs.remove('forgetUrl');
+  //         await prefs.remove('isLoggedIn');
+  //         await prefs.remove('X-Tenant');
+  //         await prefs.remove('X-Medsoft-Token');
+  //         await prefs.remove('Username');
+  //         await prefs.remove('scannedToken');
+  //         await prefs.remove('tenantDomain');
+  //         await prefs.remove('forgetUrl');
 
-          setState(() {
-            _selectedToggleIndex = 0;
-            _dragPosition = 0.0;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'Бүртгэл амжилтгүй боллоо: ${data['message']}';
-            _isLoading = false;
-          });
-        }
-      } else {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', false);
-        setState(() {
-          _errorMessage = 'Бүртгэх үед алдаа гарлаа. Дахин оролдоно уу.';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Алдаа гарлаа: $e';
-        _isLoading = false;
-      });
-    }
-  }
+  //         setState(() {
+  //           _selectedToggleIndex = 0;
+  //           _dragPosition = 0.0;
+  //           _isLoading = false;
+  //         });
+  //       } else {
+  //         setState(() {
+  //           _errorMessage = 'Бүртгэл амжилтгүй боллоо: ${data['message']}';
+  //           _isLoading = false;
+  //         });
+  //       }
+  //     } else {
+  //       SharedPreferences prefs = await SharedPreferences.getInstance();
+  //       await prefs.setBool('isLoggedIn', false);
+  //       setState(() {
+  //         _errorMessage = 'Бүртгэх үед алдаа гарлаа. Дахин оролдоно уу.';
+  //         _isLoading = false;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     setState(() {
+  //       _errorMessage = 'Алдаа гарлаа: $e';
+  //       _isLoading = false;
+  //     });
+  //   }
+  // }
 
   Future<String?> getSavedToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -379,12 +383,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
       final server = prefs.getString('X-Tenant') ?? '';
 
-      final waitResponse = await http.get(
-        Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
-        headers: {'X-Medsoft-Token': tokenSaved, 'X-Tenant': server, 'X-Token': Constants.xToken},
-      );
+      // final waitResponse = await http.get(
+      //   Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
+      //   headers: {'X-Medsoft-Token': tokenSaved, 'X-Tenant': server, 'X-Token': Constants.xToken},
+      // );
 
-      debugPrint('Login Wait API Response: ${waitResponse.body}');
+      final waitResponse = await _authDao.waitQR(token);
+
+      debugPrint('Login Wait API Response: ${waitResponse.data}');
 
       if (waitResponse.statusCode == 200) {
         Navigator.pushReplacement(
@@ -417,79 +423,86 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       'password': _passwordLoginController.text,
     };
 
-    final headers = {
-      'X-Token': Constants.xToken,
-      'X-Tenant': _selectedRole?['name'] ?? '',
-      'Content-Type': 'application/json',
-    };
+    // final headers = {
+    //   'X-Token': Constants.xToken,
+    //   'X-Tenant': _selectedRole?['name'] ?? '',
+    //   'Content-Type': 'application/json',
+    // };
 
-    debugPrint('Request Headers: $headers');
+    // debugPrint('Request Headers: $headers');
     debugPrint('Request Body: ${json.encode(body)}');
 
-    try {
-      final response = await http.post(
-        Uri.parse('${Constants.runnerUrl}/gateway/auth'),
-        headers: headers,
-        body: json.encode(body),
-      );
+    // try {
+    // final response = await http.post(
+    //   Uri.parse('${Constants.runnerUrl}/gateway/auth'),
+    //   headers: headers,
+    //   body: json.encode(body),
+    // );
+    final response = await _authDao.login(body);
 
-      debugPrint('Response Status: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
+    debugPrint('Response Status: ${response.statusCode}');
+    debugPrint('Response Body: ${response.data}');
 
-      if (response.statusCode == 200) {
-        if (!(Platform.environment['SIMULATOR_DEVICE_NAME'] == 'iPhone SE (3rd generation)')) {
-          FlutterAppBadger.removeBadge();
-        } else {}
+    if (response.success && response.data != null) {
+      if (!(Platform.environment['SIMULATOR_DEVICE_NAME'] == 'iPhone SE (3rd generation)')) {
+        FlutterAppBadger.removeBadge();
+      } else {}
 
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true) {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('isLoggedIn', true);
-
-          final String token = data['data']['token'];
-
-          await prefs.setString('X-Tenant', _selectedRole?['name'] ?? '');
-          await prefs.setString('tenantDomain', _selectedRole?['domain'] ?? '');
-          await prefs.setString('X-Medsoft-Token', token);
-
-          debugPrint('Username controller: ${_usernameLoginController.text}');
-          await prefs.setString('Username', _usernameLoginController.text);
-
-          _loadSharedPreferencesData();
-
-          final savedToken = await getSavedToken();
-          if (savedToken != null) {
-            debugPrint("INMY LOGIN'S if savedToken: $savedToken");
-            await callWaitApi(context, savedToken);
-            return;
-          }
-
-          _isLoading = false;
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => MyHomePage(title: 'Дуудлагын жагсаалт')),
-          );
-        } else {
-          setState(() {
-            _errorMessage = 'Нэвтрэхэд амжилтгүй боллоо: ${data['message']}';
-            _isLoading = false;
-          });
-        }
-      } else {
+      final Map<String, dynamic> data = response.data!;
+      debugPrint('DATA SUCCESS: ${response.success}');
+      if (response.success == true) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', false);
+
+        // await prefs.setString('X-Tenant', _selectedRole?['name'] ?? '');
+        await prefs.setBool('isLoggedIn', true);
+
+        final String token = data['token'];
+
+        // await prefs.setString('X-Tenant', _selectedRole?['name'] ?? '');
+        await prefs.setString('tenantDomain', _selectedRole?['domain'] ?? '');
+        await prefs.setString('X-Medsoft-Token', token);
+
+        debugPrint('Username controller: ${_usernameLoginController.text}');
+        await prefs.setString('Username', _usernameLoginController.text);
+
+        _loadSharedPreferencesData();
+
+        final savedToken = await getSavedToken();
+        if (savedToken != null) {
+          debugPrint("INMY LOGIN'S if savedToken: $savedToken");
+          await callWaitApi(context, savedToken);
+          return;
+        }
+
+        _isLoading = false;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MyHomePage(title: 'Дуудлагын жагсаалт')),
+        );
+      } else {
         setState(() {
-          _errorMessage = 'Нэвтрэх нэр эсвэл нууц үг буруу байна. Дахин оролдоно уу.';
+          _errorMessage = 'Нэвтрэхэд амжилтгүй боллоо: ${response.message}';
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } else {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', false);
       setState(() {
-        _errorMessage = 'Алдаа гарлаа: $e';
+        _errorMessage = 'Нэвтрэх нэр эсвэл нууц үг буруу байна. Дахин оролдоно уу.';
         _isLoading = false;
       });
     }
+    // } catch (e) {
+    //   setState(() {
+    //     _errorMessage = 'Алдаа гарлаа: $e';
+    //     _isLoading = false;
+    //   });
+    // }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _loadSharedPreferencesData() async {
@@ -741,9 +754,10 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                                   _errorMessage = '';
                                 });
 
-                                debugPrint('MY FORGET URL: ${newValue.toString()}');
-
                                 SharedPreferences prefs = await SharedPreferences.getInstance();
+                                await prefs.setString('X-Tenant', newValue['name'] ?? '');
+
+                                debugPrint('MY FORGET URL: ${newValue.toString()}');
                                 await prefs.setString('forgetUrl', newValue['domain'] ?? '');
                               }
                             },
@@ -1061,13 +1075,13 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   onPressed: _isLoading
                       ? null
                       : () {
-                          if (_selectedToggleIndex == 1) {
-                            if (_validateRegisterInputs()) {
-                              _register();
-                            }
-                          } else {
-                            _login();
-                          }
+                          // if (_selectedToggleIndex == 1) {
+                          //   if (_validateRegisterInputs()) {
+                          //     _register();
+                          //   }
+                          // } else {
+                          _login();
+                          // }
                         },
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
