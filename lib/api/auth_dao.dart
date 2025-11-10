@@ -8,7 +8,7 @@ class AuthDAO extends BaseDAO {
   Future<ApiResponse<List<dynamic>>> getHospitals() {
     return get<List<dynamic>>(
       '${Constants.runnerUrl}/gateway/servers',
-      config: const RequestConfig(headerType: HeaderType.xToken),
+      config: const RequestConfig(headerType: HeaderType.xtoken),
     );
   }
 
@@ -23,28 +23,28 @@ class AuthDAO extends BaseDAO {
 
   //Нэвтрэх
   Future<ApiResponse<Map<String, dynamic>>> login(Map<String, dynamic> body) {
-    debugPrint(HeaderType.xTokenAndTenant.toString());
+    debugPrint(HeaderType.xtokenAndTenant.toString());
     return post<Map<String, dynamic>>(
       '${Constants.runnerUrl}/gateway/auth',
       body: body,
-      config: const RequestConfig(headerType: HeaderType.xTokenAndTenant, excludeToken: true),
+      config: const RequestConfig(headerType: HeaderType.xtokenAndTenant, excludeToken: false),
     );
   }
 
   //QR хүлээх
   //   Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
-  Future<ApiResponse<Map<String, dynamic>>> waitQR(String token) {
-    return get<Map<String, dynamic>>(
+  Future<ApiResponse<String>> waitQR(String token) {
+    return get<String>(
       '${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token',
-      config: const RequestConfig(headerType: HeaderType.xtokenAndTenantAndxMedsoftToken),
+      config: const RequestConfig(headerType: HeaderType.xtokenAndTenantAndxmedsoftToken),
     );
   }
 
   // QR баталгаажуулах
-  Future<ApiResponse<Map<String, dynamic>>> claimQR(String token) {
-    return get<Map<String, dynamic>>(
+  Future<ApiResponse<void>> claimQR(String token) {
+    return get<void>(
       '${Constants.runnerUrl}/gateway/general/get/api/auth/qr/claim?id=$token',
-      config: const RequestConfig(headerType: HeaderType.bearerAndJson),
+      config: const RequestConfig(headerType: HeaderType.xtokenAndTenantAndxmedsoftToken),
     );
   }
 

@@ -380,8 +380,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   Future<void> callWaitApi(BuildContext context, String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
-      final server = prefs.getString('X-Tenant') ?? '';
+      // final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
+      // final server = prefs.getString('X-Tenant') ?? '';
 
       // final waitResponse = await http.get(
       //   Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
@@ -442,6 +442,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
     debugPrint('Response Status: ${response.statusCode}');
     debugPrint('Response Body: ${response.data}');
+    debugPrint('Response Message: ${response.message}');
 
     if (response.success && response.data != null) {
       if (!(Platform.environment['SIMULATOR_DEVICE_NAME'] == 'iPhone SE (3rd generation)')) {
@@ -670,7 +671,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _scrollIntoView(FocusNode focusNode) {
+  void scrollIntoView(FocusNode focusNode) {
     final context = focusNode.context;
     if (context != null) {
       Scrollable.ensureVisible(
@@ -690,14 +691,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         child: SafeArea(
           child: KeyboardActions(
             config: _buildKeyboardActionsConfig(context),
-            child: _buildLoginForm(),
+            child: buildLoginForm(),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLoginForm() {
+  Widget buildLoginForm() {
     final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
     final maxWidth = isTablet ? MediaQuery.of(context).size.width * 0.5 : double.infinity;
 

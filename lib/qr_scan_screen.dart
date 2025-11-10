@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:developer';
 
+import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +22,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
   QRViewController? controller;
   bool isScanned = false;
 
+  final _authDao = AuthDAO();
   @override
   void initState() {
     super.initState();
@@ -67,21 +70,44 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
       log("Extracted token: $token");
 
-      final prefs = await SharedPreferences.getInstance();
-      final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
-      final server = prefs.getString('X-Tenant') ?? '';
+      // final prefs = await SharedPreferences.getInstance();
+      // final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
+      // final server = prefs.getString('X-Tenant') ?? '';
 
-      final headers = {
-        'X-Medsoft-Token': tokenSaved,
-        'X-Tenant': server,
-        'X-Token': Constants.xToken,
-      };
+      // final headers = {
+      //   'X-Medsoft-Token': tokenSaved,
+      //   'X-Tenant': server,
+      //   'X-Token': Constants.xToken,
+      // };
 
-      final response = await http.get(
-        Uri.parse("${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token"),
-        headers: headers,
-      );
+      // final response = await http.get(
+      //   Uri.parse("${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token"),
+      //   headers: headers,
+      // );
+      final response = await _authDao.waitQR(token);
 
+      // 1. Prepare the JSON data
+      const JsonEncoder encoder = JsonEncoder.withIndent('  '); // '  ' for 2-space indentation
+      // Handle potentially null data before conversion
+      final String prettyJson = response.data != null ? encoder.convert(response.data) : 'null';
+
+      // 2. Build the full, organized log message
+      final String fullLogMessage =
+          '''
+############################################
+### FULL API RESPONSE (waitQR) ###
+
+Status Code: ${response.statusCode}
+Success: ${response.success} 
+Message: ${response.message}
+--- Data (Pretty JSON) ---
+$prettyJson
+############################################
+''';
+
+      // 3. Print the log message using debugPrint with a wide wrap
+      // Setting wrapWidth to a large number (e.g., 1024 or higher) prevents truncation.
+      debugPrint(fullLogMessage, wrapWidth: 1024);
       if (response.statusCode == 200) {
         if (!mounted) return;
         Navigator.pushReplacement(

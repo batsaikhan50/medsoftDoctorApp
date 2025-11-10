@@ -117,7 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // );
         final waitResponse = await _authDao.waitQR(token);
 
-        debugPrint('Main Wait API Response: ${waitResponse.data}');
+        debugPrint('Main Wait API Response: ${waitResponse.toString()}');
 
         if (waitResponse.statusCode == 200) {
           return true;
@@ -229,13 +229,7 @@ class _MyHomePageState extends State<MyHomePage> {
     debugPrint("Entered _logOut");
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('isLoggedIn');
-    await prefs.remove('X-Tenant');
-    await prefs.remove('X-Medsoft-Token');
-    await prefs.remove('Username');
-    await prefs.remove('scannedToken');
-    await prefs.remove('tenantDomain');
-    await prefs.remove('forgetUrl');
+    prefs.clear();
 
     Navigator.pushReplacement(
       context,

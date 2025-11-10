@@ -32,10 +32,10 @@ class ApiResponse<T> {
 enum HeaderType {
   jsonOnly, // Content-Type: application/json
   bearerToken, // Authorization: Bearer <token>
-  xToken, // X-Token: Constants.xToken
+  xtoken, // X-Token: Constants.xToken
   bearerAndJson, // Bearer + JSON
-  xTokenAndTenant, // Bearer + JSON + X-Token + X-Tenant
-  xtokenAndTenantAndxMedsoftToken, // Bearer + JSON + X-Token + X-Tenant + X-Medsoft-Token
+  xtokenAndTenant, //X-Token + X-Tenant
+  xtokenAndTenantAndxmedsoftToken, //X-Token + X-Tenant + X-Medsoft-Token
   custom, // For custom headers
 }
 
@@ -81,19 +81,18 @@ abstract class BaseDAO {
     RequestConfig config = const RequestConfig(),
     T Function(dynamic)? parse,
   }) async {
-    try {
-      final headers = await _buildHeaders(config);
-      debugPrint('GET $url');
-      debugPrint('Headers: $headers');
+    // try {
+    final headers = await _buildHeaders(config);
+    debugPrint('GET $url');
+    debugPrint('Headers: $headers');
 
-      final response = await http.get(Uri.parse(url), headers: headers);
-      final result = _handleResponse<T>(response, parse: parse);
+    final response = await http.get(Uri.parse(url), headers: headers);
+    final result = _handleResponse<T>(response, parse: parse);
 
-      return result;
-    } catch (e) {
-      debugPrint('GET error: $e');
-      return ApiResponse<T>(success: false, message: e.toString());
-    }
+    return result;
+    // } catch (e) {
+    //   return ApiResponse<T>(success: false, message: e.toString());
+    // }
   }
 
   Future<Map<String, String>> _buildHeaders(RequestConfig config) async {
@@ -112,7 +111,7 @@ abstract class BaseDAO {
           headers['Authorization'] = 'Bearer $savedToken';
         }
         break;
-      case HeaderType.xToken:
+      case HeaderType.xtoken:
         headers['X-Token'] = Constants.xToken;
         break;
       case HeaderType.bearerAndJson:
@@ -121,13 +120,14 @@ abstract class BaseDAO {
           headers['Authorization'] = 'Bearer $savedToken';
         }
         break;
-      case HeaderType.xTokenAndTenant:
+      case HeaderType.xtokenAndTenant:
+        headers['Content-Type'] = 'application/json';
         headers['X-Token'] = Constants.xToken;
         if (savedTenant.isNotEmpty) {
           headers['X-Tenant'] = savedTenant;
         }
         break;
-      case HeaderType.xtokenAndTenantAndxMedsoftToken:
+      case HeaderType.xtokenAndTenantAndxmedsoftToken:
         headers['Content-Type'] = 'application/json';
         headers['X-Token'] = Constants.xToken;
         if (savedTenant.isNotEmpty) {
