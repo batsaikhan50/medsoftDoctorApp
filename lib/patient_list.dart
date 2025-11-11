@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:doctor_app/api/auth_dao.dart';
+import 'package:doctor_app/api/map_dao.dart';
 import 'package:doctor_app/login.dart';
 import 'package:doctor_app/webview_screen.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +26,7 @@ class PatientListScreenState extends State<PatientListScreen> {
   Map<String, dynamic> sharedPreferencesData = {};
   Timer? _refreshTimer;
   final Set<int> _expandedTiles = {};
+  final _mapDAO = MapDAO();
 
   @override
   void initState() {
@@ -55,22 +58,40 @@ class PatientListScreenState extends State<PatientListScreen> {
     final token = prefs.getString('X-Medsoft-Token') ?? '';
     final server = prefs.getString('X-Tenant') ?? '';
 
-    final uri = Uri.parse('${Constants.appUrl}/room/get/driver');
+    // final uri = Uri.parse('${Constants.appUrl}/room/get/driver');
 
-    final headers = {
-      'Authorization': 'Bearer $token',
-      'X-Medsoft-Token': token,
-      'X-Tenant': server,
-      'X-Token': Constants.xToken,
-    };
+    // final headers = {
+    //   'Authorization': 'Bearer $token',
+    //   'X-Medsoft-Token': token,
+    //   'X-Tenant': server,
+    //   'X-Token': Constants.xToken,
+    // };
 
-    final response = await http.get(uri, headers: headers);
+    // final response = await http.get(uri, headers: headers);
+    final response = await _mapDAO.getPatientsListAmbulance();
 
     if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      if (json['success'] == true) {
+      final json = response.data;
+      const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+
+      final String prettyJson = response.data != null ? encoder.convert(response.data) : 'null';
+
+      final String fullLogMessage =
+          '''
+############################################
+### FULL API RESPONSE (waitQR) ###
+
+Status Code: ${response.statusCode}
+Success: ${response.success} 
+Message: ${response.message}
+--- Data (Pretty JSON) ---
+$prettyJson
+############################################
+''';
+      debugPrint(fullLogMessage, wrapWidth: 1024);
+      if (response.success == true) {
         setState(() {
-          patients = json['data'];
+          patients = json as List;
           isLoading = false;
         });
       }
@@ -262,26 +283,26 @@ class PatientListScreenState extends State<PatientListScreen> {
                             onPressed: () async {
                               Navigator.of(dialogContext).pop();
 
-                              final prefs = await SharedPreferences.getInstance();
-                              final token = prefs.getString('X-Medsoft-Token') ?? '';
-                              final tenant = prefs.getString('X-Tenant') ?? '';
+                              // final prefs = await SharedPreferences.getInstance();
+                              // final token = prefs.getString('X-Medsoft-Token') ?? '';
+                              // final tenant = prefs.getString('X-Tenant') ?? '';
 
-                              final uri = Uri.parse(
-                                '${Constants.appUrl}/room/done_request_app?roomId=$roomId',
-                              );
+                              // final uri = Uri.parse(
+                              //   '${Constants.appUrl}/room/done_request_app?roomId=$roomId',
+                              // );
 
                               try {
-                                final response = await http.get(
-                                  uri,
-                                  headers: {
-                                    'X-Medsoft-Token': token,
-                                    'X-Tenant': tenant,
-                                    'X-Token': Constants.xToken,
-                                  },
-                                );
-
-                                if (response.statusCode == 200) {
-                                  debugPrint('done_request success: ${response.body}');
+                                // final response = await http.get(
+                                //   uri,
+                                //   headers: {
+                                //     'X-Medsoft-Token': token,
+                                //     'X-Tenant': tenant,
+                                //     'X-Token': Constants.xToken,
+                                //   },
+                                // );
+                                final response = await _mapDAO.requestDoneByApp(roomId);
+                                if (response.success == true) {
+                                  debugPrint('done_request success: ${response.message}');
                                   ScaffoldMessenger.of(rootContext).showSnackBar(
                                     const SnackBar(
                                       backgroundColor: Colors.green,
@@ -293,7 +314,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                                   );
                                 } else {
                                   debugPrint(
-                                    'done_request failed: ${response.statusCode} ${response.body} ',
+                                    'done_request failed: ${response.statusCode} ${response.message} ',
                                   );
                                   ScaffoldMessenger.of(rootContext).showSnackBar(
                                     SnackBar(content: Text('Амжилтгүй: ${response.statusCode}')),
@@ -338,27 +359,28 @@ class PatientListScreenState extends State<PatientListScreen> {
                             onPressed: () async {
                               Navigator.of(dialogContext).pop();
 
-                              final prefs = await SharedPreferences.getInstance();
-                              final token = prefs.getString('X-Medsoft-Token') ?? '';
+                              // final prefs = await SharedPreferences.getInstance();
+                              // final token = prefs.getString('X-Medsoft-Token') ?? '';
                               // This was hardcoded to 'staging' in the previous inlined code
-                              const tenant = 'staging';
+                              // const tenant = 'staging';
 
-                              final uri = Uri.parse(
-                                '${Constants.appUrl}/room/done_request_otp?roomId=$roomId',
-                              );
+                              // final uri = Uri.parse(
+                              //   '${Constants.appUrl}/room/done_request_otp?roomId=$roomId',
+                              // );
 
                               try {
-                                final response = await http.get(
-                                  uri,
-                                  headers: {
-                                    'X-Medsoft-Token': token,
-                                    'X-Tenant': tenant,
-                                    'X-Token': Constants.xToken,
-                                  },
-                                );
+                                // final response = await http.get(
+                                //   uri,
+                                //   headers: {
+                                //     'X-Medsoft-Token': token,
+                                //     'X-Tenant': tenant,
+                                //     'X-Token': Constants.xToken,
+                                //   },
+                                // );
+                                final response = await _mapDAO.requestDoneByOTP(roomId);
 
-                                if (response.statusCode == 200 || response.statusCode == 429) {
-                                  debugPrint(' done_request_otp success: ${response.body}');
+                                if (response.success == true) {
+                                  debugPrint(' done_request_otp success: ${response.success}');
                                   ScaffoldMessenger.of(rootContext).showSnackBar(
                                     const SnackBar(
                                       content: Text('Иргэний утас руу OTP илгээгдлээ'),
@@ -396,25 +418,29 @@ class PatientListScreenState extends State<PatientListScreen> {
 
                                               if (otp.length == 6) {
                                                 try {
-                                                  final doneUri = Uri.parse(
-                                                    '${Constants.appUrl}/room/done',
-                                                  );
+                                                  // final doneUri = Uri.parse(
+                                                  //   '${Constants.appUrl}/room/done',
+                                                  // );
 
-                                                  final doneResponse = await http.post(
-                                                    doneUri,
-                                                    headers: {
-                                                      'Content-Type': 'application/json',
-                                                      'X-Medsoft-Token': token,
-                                                      'X-Tenant': tenant,
-                                                      'X-Token': Constants.xToken,
-                                                    },
-                                                    body: jsonEncode({
-                                                      'roomId': roomId,
-                                                      'otp': otp,
-                                                    }),
-                                                  );
+                                                  // final doneResponse = await http.post(
+                                                  //   doneUri,
+                                                  //   headers: {
+                                                  //     'Content-Type': 'application/json',
+                                                  //     'X-Medsoft-Token': token,
+                                                  //     'X-Tenant': tenant,
+                                                  //     'X-Token': Constants.xToken,
+                                                  //   },
+                                                  //   body: jsonEncode({
+                                                  //     'roomId': roomId,
+                                                  //     'otp': otp,
+                                                  //   }),
+                                                  // );
+                                                  final doneResponse = await _mapDAO.doneByOTP({
+                                                    'roomId': roomId,
+                                                    'otp': otp,
+                                                  });
 
-                                                  if (doneResponse.statusCode == 200) {
+                                                  if (doneResponse.success) {
                                                     Navigator.of(context).pop();
                                                     ScaffoldMessenger.of(rootContext).showSnackBar(
                                                       const SnackBar(

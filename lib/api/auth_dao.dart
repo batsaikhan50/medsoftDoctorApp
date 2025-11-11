@@ -47,30 +47,4 @@ class AuthDAO extends BaseDAO {
       config: const RequestConfig(headerType: HeaderType.xtokenAndTenantAndxmedsoftToken),
     );
   }
-
-  //Нууц үг сэргээх OTP илгээх
-  Future<ApiResponse<Map<String, dynamic>>> sendResetPassOTP(Map<String, dynamic> body) {
-    return post<Map<String, dynamic>>(
-      '${Constants.appUrl}/auth/otp',
-      body: body,
-      config: const RequestConfig(headerType: HeaderType.jsonOnly, excludeToken: true),
-    );
-  }
-
-  //Нууц үг сэргээх
-  Future<ApiResponse<Map<String, dynamic>>> resetPassword(Map<String, dynamic> body) {
-    return post<Map<String, dynamic>>(
-      '${Constants.appUrl}/auth/reset/password',
-      body: body,
-      config: const RequestConfig(headerType: HeaderType.jsonOnly, excludeToken: true),
-    );
-  }
-
-  //ДАН-с мэдээлэл дуудах
-  Future<ApiResponse<Map<String, dynamic>>> getPatientInfo() {
-    return get<Map<String, dynamic>>(
-      '${Constants.appUrl}/patient/profile',
-      config: const RequestConfig(headerType: HeaderType.bearerToken),
-    );
-  }
 }

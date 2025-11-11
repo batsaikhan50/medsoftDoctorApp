@@ -3,12 +3,9 @@ import 'dart:developer';
 
 import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/claim_qr.dart';
-import 'package:doctor_app/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class QrScanScreen extends StatefulWidget {
   const QrScanScreen({super.key});

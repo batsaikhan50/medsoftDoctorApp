@@ -121,6 +121,9 @@ abstract class BaseDAO {
         }
         break;
       case HeaderType.xtokenAndTenant:
+        if (!config.excludeToken && savedToken.isNotEmpty) {
+          headers['Authorization'] = 'Bearer $savedToken';
+        }
         headers['Content-Type'] = 'application/json';
         headers['X-Token'] = Constants.xToken;
         if (savedTenant.isNotEmpty) {
@@ -128,6 +131,9 @@ abstract class BaseDAO {
         }
         break;
       case HeaderType.xtokenAndTenantAndxmedsoftToken:
+        if (!config.excludeToken && savedToken.isNotEmpty) {
+          headers['Authorization'] = 'Bearer $savedToken';
+        }
         headers['Content-Type'] = 'application/json';
         headers['X-Token'] = Constants.xToken;
         if (savedTenant.isNotEmpty) {
