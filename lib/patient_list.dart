@@ -482,7 +482,7 @@ $prettyJson
                                   );
                                 } else {
                                   debugPrint(
-                                    'done_request_otp failed: ${response.statusCode} ${response.body}',
+                                    'done_request_otp failed: ${response.statusCode} ${response.message}',
                                   );
                                   ScaffoldMessenger.of(rootContext).showSnackBar(
                                     SnackBar(
