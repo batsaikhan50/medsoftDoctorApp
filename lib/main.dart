@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/constants.dart';
+import 'package:doctor_app/empty_screen.dart';
 import 'package:doctor_app/guide.dart';
 import 'package:doctor_app/patient_list.dart';
+import 'package:doctor_app/profile_screen.dart';
 import 'package:doctor_app/qr_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -61,6 +63,7 @@ class MyApp extends StatelessWidget {
     final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
     if (isLoggedIn) {
+      // The initial screen will still be MyHomePage, but now it handles the navigation.
       return const MyHomePage(title: 'Дуудлагын жагсаалт');
     } else {
       return const LoginScreen();
@@ -85,9 +88,20 @@ class _MyHomePageState extends State<MyHomePage> {
   String? username;
   Map<String, dynamic> sharedPreferencesData = {};
 
+  // Key for PatientListScreen, used for the refresh action
   final GlobalKey<PatientListScreenState> _patientListKey = GlobalKey<PatientListScreenState>();
 
+  // GlobalKey for the Inbox/Home item anchor (used for positioning the menu)
+  final GlobalKey _inboxKey = GlobalKey();
+
   static const String xToken = Constants.xToken;
+
+  // --- Navigation Bar State ---
+  // 0 for Home/Inbox (PatientList/EmptyScreen), 1 for Profile
+  int _selectedIndex = 0;
+  // 0 for PatientList (myHomePage), 1 for EmptyScreen
+  int _homeContentIndex = 0;
+  // -----------------------------
 
   @override
   void initState() {
@@ -100,21 +114,8 @@ class _MyHomePageState extends State<MyHomePage> {
       await prefs.setString('scannedToken', token);
     }
 
-    // Future<String?> getSavedToken() async {
-    //   final prefs = await SharedPreferences.getInstance();
-    //   return prefs.getString('scannedToken');
-    // }
-
     Future<bool> callWaitApi(String token) async {
       try {
-        // final prefs = await SharedPreferences.getInstance();
-        // final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
-        // final server = prefs.getString('X-Tenant') ?? '';
-
-        // final waitResponse = await http.get(
-        //   Uri.parse('${Constants.runnerUrl}/gateway/general/get/api/auth/qr/wait?id=$token'),
-        //   headers: {'X-Medsoft-Token': tokenSaved, 'X-Tenant': server, 'X-Token': Constants.xToken},
-        // );
         final waitResponse = await _authDao.waitQR(token);
 
         debugPrint('Main Wait API Response: ${waitResponse.toString()}');
@@ -197,65 +198,262 @@ class _MyHomePageState extends State<MyHomePage> {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-  Future<void> _showNotification() async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'your_channel_id',
-      'your_channel_name',
-      channelDescription: 'Your channel description',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-    );
-
-    const DarwinNotificationDetails iOSPlatformChannelSpecifics = DarwinNotificationDetails(
-      badgeNumber: 1,
-    );
-
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: iOSPlatformChannelSpecifics,
-    );
-
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      'Системээс гарсан байна.',
-      'Ахин нэвтэрнэ үү.',
-      platformChannelSpecifics,
-      payload: 'item x',
-    );
-  }
-
   void _logOut() async {
     debugPrint("Entered _logOut");
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.clear();
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
+  // Method to handle BottomNavigationBar item taps (used by the Profile tab only)
+  void _onItemTapped(int index) {
+    if (index == 1) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
+
+  // Returns the content for the Home/Inbox tab
+  Widget _getHomeContent() {
+    // 0 is the original 'myHomePage' (PatientListScreen)
+    if (_homeContentIndex == 0) {
+      return PatientListScreen(key: _patientListKey);
+    }
+    // 1 is the second option in the dropdown (EmptyScreen)
+    return const EmptyScreen();
+  }
+
+  // Returns the current screen content, removing top and bottom safe area padding
+  Widget _getBody() {
+    Widget currentContent;
+    if (_selectedIndex == 0) {
+      currentContent = _getHomeContent();
+    } else {
+      currentContent = const ProfileScreen();
+    }
+
+    // Wrap content to explicitly remove top and bottom safe area padding
+    return SafeArea(top: false, bottom: false, child: currentContent);
+  }
+
+  // Helper to get the descriptive title and icon for the current Home sub-screen
+  Map<String, dynamic> _getHomeSelectionDetails() {
+    if (_homeContentIndex == 0) {
+      return {'title': 'myHomePage', 'icon': Icons.list_alt}; // Changed icon to list_alt
+    } else {
+      return {'title': 'Empty Screen', 'icon': Icons.inbox}; // Changed icon to inbox
+    }
+  }
+
+  // Helper to get the descriptive title for the current Home sub-screen (used by AppBar)
+  String _getCurrentHomeTitle() {
+    return _getHomeSelectionDetails()['title'];
+  }
+
+  // --- Custom Bottom Navigation Bar with Nested Menu ---
+  Widget _buildCustomBottomNavBar() {
+    const selectedColor = Color(0xFF00CCCC);
+    const unselectedColor = Colors.grey;
+
+    final homeDetails = _getHomeSelectionDetails();
+    final homeIcon = homeDetails['icon'] as IconData;
+    final homeCaption = homeDetails['title'] as String;
+
+    // Function to show the popup menu anchored to the Inbox key's position
+    void showNestedMenu(BuildContext context) {
+      // Need to wait until the current frame finishes rendering before getting RenderBox
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final RenderBox? renderBox = _inboxKey.currentContext?.findRenderObject() as RenderBox?;
+        if (renderBox == null) return;
+
+        final size = renderBox.size;
+        final position = renderBox.localToGlobal(Offset.zero);
+
+        // Calculate the horizontal center of the item and estimate the menu width
+        const menuWidth = 150.0;
+        final itemCenter = position.dx + size.width / 2;
+
+        showMenu<int>(
+          context: context,
+          // Position the menu.
+          position: RelativeRect.fromLTRB(
+            itemCenter - (menuWidth / 2), // Horizontal position centered on the item
+            // Adjusted Top: A value like 115px is appropriate for two menu items (~110px total height),
+            // ensuring the menu is not pushed too far up.
+            position.dy - 115,
+            itemCenter + (menuWidth / 2),
+            position
+                .dy, // Bottom: Aligned exactly with the top edge of the navigation item (no padding).
+          ),
+          items: [
+            const PopupMenuItem<int>(value: 0, child: Text('myHomePage')),
+            const PopupMenuItem<int>(value: 1, child: Text('Empty Screen')),
+          ],
+          elevation: 8.0,
+        ).then((int? result) {
+          if (result != null) {
+            setState(() {
+              _homeContentIndex = result;
+              // Ensure we are on the Home tab when content changes
+              if (_selectedIndex != 0) {
+                _selectedIndex = 0;
+              }
+            });
+          }
+        });
+      });
+    }
+
+    // Define the items including the divider
+    final items = [
+      // Inbox/Home item (with dropdown logic)
+      Expanded(
+        child: Material(
+          // Use Material and InkWell for tap feedback
+          color: Colors.white,
+          child: InkWell(
+            key: _inboxKey, // Anchor for the popup
+            onTap: () {
+              // Switch to Home tab if on Profile
+              if (_selectedIndex == 1) {
+                setState(() {
+                  _selectedIndex = 0;
+                });
+              }
+              // Now show the nested menu
+              showNestedMenu(context);
+            },
+            child: Container(
+              height: kBottomNavigationBarHeight,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // --- START: Combined Icons Row ---
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        homeIcon, // Dynamic Icon
+                        color: _selectedIndex == 0 ? selectedColor : unselectedColor,
+                        size: 24.0, // Standard size
+                      ),
+                      const SizedBox(width: 2), // Small space between icon and indicator
+                      Icon(
+                        Icons.unfold_more, // UnfoldMore indicator
+                        color: _selectedIndex == 0 ? selectedColor : unselectedColor,
+                        size: 16.0, // Slightly smaller to suggest it's a decorator
+                      ),
+                    ],
+                  ),
+                  // --- END: Combined Icons Row ---
+                  Text(
+                    homeCaption, // <-- Dynamic Caption
+                    style: TextStyle(
+                      color: _selectedIndex == 0 ? selectedColor : unselectedColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+
+      // Divider between the options
+      const SizedBox(
+        height: kBottomNavigationBarHeight,
+        child: VerticalDivider(
+          width: 1, // Actual width of the space the divider takes
+          thickness: 1, // Thickness of the drawn line
+          color: Colors.grey,
+        ),
+      ),
+
+      // Profile item (regular navigation)
+      Expanded(
+        child: Material(
+          // Use Material and InkWell for tap feedback
+          color: Colors.white,
+          child: InkWell(
+            onTap: () {
+              _onItemTapped(1); // regular navigation to index 1
+            },
+            child: Container(
+              height: kBottomNavigationBarHeight,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person, color: _selectedIndex == 1 ? selectedColor : unselectedColor),
+                  Text(
+                    'Profile',
+                    style: TextStyle(
+                      color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ];
+
+    return BottomAppBar(
+      color: Colors.white,
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: items),
     );
   }
+  // --- End Custom Bottom Navigation Bar ---
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF00CCCC),
-        title: Text(widget.title),
-        actions: [
+    Widget? actualAppBarTitle;
+    List<Widget> appBarActions = [];
+    final isHomeTab = _selectedIndex == 0;
+    final isPatientListScreen = isHomeTab && _homeContentIndex == 0;
+
+    // --- Simplified AppBar Logic ---
+    if (isHomeTab) {
+      // Show the current sub-screen title
+      actualAppBarTitle = Text(_getCurrentHomeTitle());
+
+      // Only show refresh if we are on the original PatientListScreen
+      if (isPatientListScreen) {
+        appBarActions.add(
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               debugPrint("Refreshing patient list");
-              if (_patientListKey.currentState == null) {
-                debugPrint("_patientListKey.currentState is NULL");
-              }
               _patientListKey.currentState?.refreshPatients();
             },
           ),
-        ],
+        );
+      }
+    } else {
+      // Profile Tab
+      actualAppBarTitle = const Text('Profile');
+    }
+    // --- End Simplified AppBar Logic ---
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF00CCCC),
+        title: actualAppBarTitle,
+        actions: appBarActions,
       ),
+      // The existing drawer logic remains here
       drawer: Drawer(
         child: Column(
           children: <Widget>[
@@ -331,7 +529,12 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      body: PatientListScreen(key: _patientListKey),
+      // Use the new _getBody() for conditional content
+      body: _getBody(),
+
+      // --- Custom Bottom Navigation Bar ---
+      bottomNavigationBar: _buildCustomBottomNavBar(),
+      // -----------------------------
     );
   }
 }
