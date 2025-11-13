@@ -12,14 +12,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants.dart';
 
-class PatientListScreen extends StatefulWidget {
-  const PatientListScreen({super.key});
+class EmergencyListScreen extends StatefulWidget {
+  const EmergencyListScreen({super.key});
 
   @override
-  State<PatientListScreen> createState() => PatientListScreenState();
+  State<EmergencyListScreen> createState() => EmergencyListScreenState();
 }
 
-class PatientListScreenState extends State<PatientListScreen> {
+class EmergencyListScreenState extends State<EmergencyListScreen> {
   List<dynamic> patients = [];
   bool isLoading = true;
   String? username;
@@ -82,13 +82,13 @@ class PatientListScreenState extends State<PatientListScreen> {
 ### FULL API RESPONSE (waitQR) ###
 
 Status Code: ${response.statusCode}
-Success: ${response.success}
+Success: ${response.success} 
 Message: ${response.message}
 --- Data (Pretty JSON) ---
 $prettyJson
 ############################################
 ''';
-      debugPrint(fullLogMessage, wrapWidth: 1024);
+      // debugPrint(fullLogMessage, wrapWidth: 1024);
       if (response.success == true) {
         setState(() {
           patients = json as List;

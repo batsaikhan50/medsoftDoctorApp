@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/constants.dart';
-import 'package:doctor_app/empty_screen.dart';
+import 'package:doctor_app/emergency_list.dart';
 import 'package:doctor_app/guide.dart';
 import 'package:doctor_app/patient_list.dart';
 import 'package:doctor_app/profile_screen.dart';
@@ -228,10 +228,10 @@ class _MyHomePageState extends State<MyHomePage> {
       return PatientListScreen(key: _patientListKey);
     }
     // 1 is the second option in the dropdown (EmptyScreen)
-    return const EmptyScreen();
+    return const EmergencyListScreen();
   }
 
-  // Returns the current screen content, removing top and bottom safe area padding
+  // Your original _getBody() function
   Widget _getBody() {
     Widget currentContent;
     if (_selectedIndex == 0) {
@@ -240,16 +240,16 @@ class _MyHomePageState extends State<MyHomePage> {
       currentContent = const ProfileScreen();
     }
 
-    // Wrap content to explicitly remove top and bottom safe area padding
+    // WRAPPING content to explicitly remove top and bottom safe area padding
     return SafeArea(top: false, bottom: false, child: currentContent);
   }
 
   // Helper to get the descriptive title and icon for the current Home sub-screen
   Map<String, dynamic> _getHomeSelectionDetails() {
     if (_homeContentIndex == 0) {
-      return {'title': 'myHomePage', 'icon': Icons.list_alt}; // Changed icon to list_alt
+      return {'title': 'Түргэн тусламж', 'icon': Icons.list_alt}; // Changed icon to list_alt
     } else {
-      return {'title': 'Empty Screen', 'icon': Icons.inbox}; // Changed icon to inbox
+      return {'title': 'Яаралтай', 'icon': Icons.inbox}; // Changed icon to inbox
     }
   }
 
@@ -288,14 +288,14 @@ class _MyHomePageState extends State<MyHomePage> {
             itemCenter - (menuWidth / 2), // Horizontal position centered on the item
             // Adjusted Top: A value like 115px is appropriate for two menu items (~110px total height),
             // ensuring the menu is not pushed too far up.
-            position.dy - 115,
+            position.dy - 120,
             itemCenter + (menuWidth / 2),
             position
                 .dy, // Bottom: Aligned exactly with the top edge of the navigation item (no padding).
           ),
           items: [
-            const PopupMenuItem<int>(value: 0, child: Text('myHomePage')),
-            const PopupMenuItem<int>(value: 1, child: Text('Empty Screen')),
+            const PopupMenuItem<int>(value: 0, child: Text('Түргэн тусламж')),
+            const PopupMenuItem<int>(value: 1, child: Text('Яаралтай')),
           ],
           elevation: 8.0,
         ).then((int? result) {
@@ -332,7 +332,8 @@ class _MyHomePageState extends State<MyHomePage> {
               showNestedMenu(context);
             },
             child: Container(
-              height: kBottomNavigationBarHeight,
+              height: 60,
+
               alignment: Alignment.center,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -370,14 +371,14 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
 
       // Divider between the options
-      const SizedBox(
-        height: kBottomNavigationBarHeight,
-        child: VerticalDivider(
-          width: 1, // Actual width of the space the divider takes
-          thickness: 1, // Thickness of the drawn line
-          color: Colors.grey,
-        ),
-      ),
+      // const SizedBox(
+      //   height: kBottomNavigationBarHeight,
+      //   child: VerticalDivider(
+      //     width: 1, // Actual width of the space the divider takes
+      //     thickness: 1, // Thickness of the drawn line
+      //     color: Colors.grey,
+      //   ),
+      // ),
 
       // Profile item (regular navigation)
       Expanded(
@@ -389,7 +390,8 @@ class _MyHomePageState extends State<MyHomePage> {
               _onItemTapped(1); // regular navigation to index 1
             },
             child: Container(
-              height: kBottomNavigationBarHeight,
+              height: 60,
+
               alignment: Alignment.center,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -409,10 +411,101 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     ];
-
-    return BottomAppBar(
-      color: Colors.white,
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: items),
+    return SafeArea(
+      top: false,
+      // ✅ The SafeArea now contains a white background that fills its full height,
+      // including the bottom inset.
+      child: Container(
+        color: Colors.white, // <- Paints the SafeArea’s background white
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Your fixed-height navigation bar
+            Container(
+              color: Colors.white,
+              height: 60,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width / 2,
+                    child: Material(
+                      color: Colors.white,
+                      child: InkWell(
+                        key: _inboxKey,
+                        onTap: () {
+                          if (_selectedIndex == 1) {
+                            setState(() => _selectedIndex = 0);
+                          }
+                          showNestedMenu(context);
+                        },
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    homeIcon,
+                                    color: _selectedIndex == 0 ? selectedColor : unselectedColor,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.unfold_more,
+                                    color: _selectedIndex == 0 ? selectedColor : unselectedColor,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                homeCaption,
+                                style: TextStyle(
+                                  color: _selectedIndex == 0 ? selectedColor : unselectedColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width / 2,
+                    child: Material(
+                      color: Colors.white,
+                      child: InkWell(
+                        onTap: () => _onItemTapped(1),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.person,
+                                color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                              ),
+                              Text(
+                                'Profile',
+                                style: TextStyle(
+                                  color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
   // --- End Custom Bottom Navigation Bar ---
@@ -452,6 +545,7 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: const Color(0xFF00CCCC),
         title: actualAppBarTitle,
         actions: appBarActions,
+        toolbarHeight: 45.0,
       ),
       // The existing drawer logic remains here
       drawer: Drawer(
@@ -533,7 +627,13 @@ class _MyHomePageState extends State<MyHomePage> {
       body: _getBody(),
 
       // --- Custom Bottom Navigation Bar ---
-      bottomNavigationBar: _buildCustomBottomNavBar(),
+      bottomNavigationBar: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: SizedBox(height: 60, child: Container(child: _buildCustomBottomNavBar())),
+        ),
+      ),
       // -----------------------------
     );
   }

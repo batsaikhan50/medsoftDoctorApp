@@ -104,7 +104,7 @@ $prettyJson
 
       // 3. Print the log message using debugPrint with a wide wrap
       // Setting wrapWidth to a large number (e.g., 1024 or higher) prevents truncation.
-      debugPrint(fullLogMessage, wrapWidth: 1024);
+      // debugPrint(fullLogMessage, wrapWidth: 1024);
       if (response.statusCode == 200) {
         if (!mounted) return;
         Navigator.pushReplacement(
