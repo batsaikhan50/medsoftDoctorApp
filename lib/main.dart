@@ -5,6 +5,7 @@ import 'package:doctor_app/claim_qr.dart';
 import 'package:doctor_app/constants.dart';
 import 'package:doctor_app/emergency_list.dart';
 import 'package:doctor_app/guide.dart';
+import 'package:doctor_app/home_screen.dart';
 import 'package:doctor_app/patient_list.dart';
 import 'package:doctor_app/profile_screen.dart';
 import 'package:doctor_app/qr_scan_screen.dart';
@@ -212,9 +213,10 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // Method to handle BottomNavigationBar item taps (used by the Profile tab only)
   void _onItemTapped(int index) {
-    if (index == 1) {
+    // Check if the index is different to avoid unnecessary rebuilds,
+    // and ensure it's a valid index (0, 1, or 2).
+    if (index != _selectedIndex && index >= 0 && index <= 2) {
       setState(() {
         _selectedIndex = index;
       });
@@ -222,23 +224,31 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // Returns the content for the Home/Inbox tab
-  Widget _getHomeContent() {
-    debugPrint("_getHomeContent called with _homeContentIndex: $_homeContentIndex");
-    // 0 is the original 'myHomePage' (PatientListScreen)
+  Widget _getSecondTabContent() {
+    debugPrint("_getSecondTabContent called with _homeContentIndex: $_homeContentIndex");
+    // 0 is the original 'Түргэн тусламж' (PatientListScreen)
     if (_homeContentIndex == 0) {
       return PatientListScreen(key: _patientListKey);
     }
-    // 1 is the second option in the dropdown (EmptyScreen)
+    // 1 is the 'Яаралтай' (EmergencyListScreen)
     return const EmergencyListScreen();
   }
 
   // Your original _getBody() function
   Widget _getBody() {
     Widget currentContent;
-    if (_selectedIndex == 0) {
-      currentContent = _getHomeContent();
-    } else {
-      currentContent = const ProfileScreen();
+    switch (_selectedIndex) {
+      case 0:
+        currentContent = const HomeScreen(); // 1st option
+        break;
+      case 1:
+        currentContent = _getSecondTabContent(); // 2nd option (Nested Menu)
+        break;
+      case 2:
+        currentContent = const ProfileScreen(); // 3rd option
+        break;
+      default:
+        currentContent = const Center(child: Text("Error: Unknown Tab"));
     }
 
     // WRAPPING content to explicitly remove top and bottom safe area padding
@@ -246,17 +256,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // Helper to get the descriptive title and icon for the current Home sub-screen
-  Map<String, dynamic> _getHomeSelectionDetails() {
+  Map<String, dynamic> _getNestedTabDetails() {
     if (_homeContentIndex == 0) {
-      return {'title': 'Түргэн тусламж', 'icon': Icons.list_alt}; // Changed icon to list_alt
+      return {'title': 'Түргэн тусламж', 'icon': Icons.crisis_alert};
     } else {
-      return {'title': 'Яаралтай', 'icon': Icons.inbox}; // Changed icon to inbox
+      return {'title': 'Яаралтай', 'icon': Icons.local_hospital};
     }
   }
 
-  // Helper to get the descriptive title for the current Home sub-screen (used by AppBar)
-  String _getCurrentHomeTitle() {
-    return _getHomeSelectionDetails()['title'];
+  // Helper to get the descriptive title for the current screen (used by AppBar)
+  String _getCurrentTitle() {
+    switch (_selectedIndex) {
+      case 0:
+        return 'Нүүр хуудас';
+      case 1:
+        return _getNestedTabDetails()['title'];
+      case 2:
+        return 'Профайл';
+      default:
+        return widget.title;
+    }
   }
 
   // --- Custom Bottom Navigation Bar with Nested Menu ---
@@ -264,11 +283,10 @@ class _MyHomePageState extends State<MyHomePage> {
     const selectedColor = Color(0xFF00CCCC);
     const unselectedColor = Colors.grey;
 
-    final homeDetails = _getHomeSelectionDetails();
-    final homeIcon = homeDetails['icon'] as IconData;
-    final homeCaption = homeDetails['title'] as String;
+    final nestedTabDetails = _getNestedTabDetails();
+    final nestedTabIcon = nestedTabDetails['icon'] as IconData;
+    final nestedTabCaption = nestedTabDetails['title'] as String;
 
-    // Function to show the popup menu anchored to the Inbox key's position
     void showNestedMenu(BuildContext context) {
       // Need to wait until the current frame finishes rendering before getting RenderBox
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -295,17 +313,35 @@ class _MyHomePageState extends State<MyHomePage> {
                 .dy, // Bottom: Aligned exactly with the top edge of the navigation item (no padding).
           ),
           items: [
-            const PopupMenuItem<int>(value: 0, child: Text('Түргэн тусламж')),
-            const PopupMenuItem<int>(value: 1, child: Text('Яаралтай')),
+            const PopupMenuItem<int>(
+              value: 0,
+              child: Row(
+                children: [
+                  Icon(Icons.crisis_alert, color: Colors.redAccent), // Icon added here
+                  SizedBox(width: 8),
+                  Text('Түргэн тусламж'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<int>(
+              value: 1,
+              child: Row(
+                children: [
+                  Icon(Icons.local_hospital, color: Colors.red), // Icon added here
+                  SizedBox(width: 8),
+                  Text('Яаралтай'),
+                ],
+              ),
+            ),
           ],
           elevation: 8.0,
         ).then((int? result) {
           if (result != null) {
             setState(() {
               _homeContentIndex = result;
-              // Ensure we are on the Home tab when content changes
-              if (_selectedIndex != 0) {
-                _selectedIndex = 0;
+              // Ensure we are on the Nested tab (index 1) when content changes
+              if (_selectedIndex != 1) {
+                _selectedIndex = 1;
               }
             });
           }
@@ -313,115 +349,16 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
-    // Define the items including the divider
-    final items = [
-      // Inbox/Home item (with dropdown logic)
-      Expanded(
-        child: Material(
-          // Use Material and InkWell for tap feedback
-          color: Colors.white,
-          child: InkWell(
-            key: _inboxKey, // Anchor for the popup
-            onTap: () {
-              // Switch to Home tab if on Profile
-              if (_selectedIndex == 1) {
-                setState(() {
-                  _selectedIndex = 0;
-                });
-              }
-              // Now show the nested menu
-              showNestedMenu(context);
-            },
-            child: Container(
-              height: 60,
+    // Define the screen width for 3 equal-sized navigation items
+    final screenWidth = MediaQuery.of(context).size.width;
 
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // --- START: Combined Icons Row ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        homeIcon, // Dynamic Icon
-                        color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                        size: 24.0, // Standard size
-                      ),
-                      const SizedBox(width: 2), // Small space between icon and indicator
-                      Icon(
-                        Icons.unfold_more, // UnfoldMore indicator
-                        color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                        size: 16.0, // Slightly smaller to suggest it's a decorator
-                      ),
-                    ],
-                  ),
-                  // --- END: Combined Icons Row ---
-                  Text(
-                    homeCaption, // <-- Dynamic Caption
-                    style: TextStyle(
-                      color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-
-      // Divider between the options
-      // const SizedBox(
-      //   height: kBottomNavigationBarHeight,
-      //   child: VerticalDivider(
-      //     width: 1, // Actual width of the space the divider takes
-      //     thickness: 1, // Thickness of the drawn line
-      //     color: Colors.grey,
-      //   ),
-      // ),
-
-      // Profile item (regular navigation)
-      Expanded(
-        child: Material(
-          // Use Material and InkWell for tap feedback
-          color: Colors.white,
-          child: InkWell(
-            onTap: () {
-              _onItemTapped(1); // regular navigation to index 1
-            },
-            child: Container(
-              height: 60,
-
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person, color: _selectedIndex == 1 ? selectedColor : unselectedColor),
-                  Text(
-                    'Profile',
-                    style: TextStyle(
-                      color: _selectedIndex == 1 ? selectedColor : unselectedColor,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    ];
     return SafeArea(
       top: false,
-      // ✅ The SafeArea now contains a white background that fills its full height,
-      // including the bottom inset.
       child: Container(
-        color: Colors.white, // <- Paints the SafeArea’s background white
+        color: Colors.white,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Your fixed-height navigation bar
             Container(
               color: Colors.white,
               height: 60,
@@ -429,40 +366,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // --- 1. NEW EMPTY HOME SCREEN (INDEX 0) ---
                   SizedBox(
-                    width: MediaQuery.of(context).size.width / 2,
+                    width: screenWidth / 3,
                     child: Material(
                       color: Colors.white,
                       child: InkWell(
-                        key: _inboxKey,
-                        onTap: () {
-                          if (_selectedIndex == 1) {
-                            setState(() => _selectedIndex = 0);
-                          }
-                          showNestedMenu(context);
-                        },
+                        onTap: () => _onItemTapped(0),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    homeIcon,
-                                    color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Icon(
-                                    Icons.unfold_more,
-                                    color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                                    size: 16,
-                                  ),
-                                ],
+                              Icon(
+                                Icons.home_outlined, // Icon for the new screen
+                                color: _selectedIndex == 0 ? selectedColor : unselectedColor,
                               ),
                               Text(
-                                homeCaption,
+                                'Нүүр хуудас',
                                 style: TextStyle(
                                   color: _selectedIndex == 0 ? selectedColor : unselectedColor,
                                   fontSize: 12,
@@ -474,24 +394,74 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
                   ),
+
+                  // --- 2. NESTED MENU (INDEX 1) ---
                   SizedBox(
-                    width: MediaQuery.of(context).size.width / 2,
+                    width: screenWidth / 3,
                     child: Material(
                       color: Colors.white,
                       child: InkWell(
-                        onTap: () => _onItemTapped(1),
+                        key: _inboxKey, // Anchor for the popup
+                        onTap: () {
+                          // Switch to this tab (index 1) first
+                          if (_selectedIndex != 1) {
+                            setState(() => _selectedIndex = 1);
+                          }
+                          showNestedMenu(context);
+                        },
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    nestedTabIcon,
+                                    color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.unfold_more,
+                                    color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                nestedTabCaption,
+                                style: TextStyle(
+                                  color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // --- 3. PROFILE (INDEX 2) ---
+                  SizedBox(
+                    width: screenWidth / 3,
+                    child: Material(
+                      color: Colors.white,
+                      child: InkWell(
+                        onTap: () => _onItemTapped(2),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.person,
-                                color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                                color: _selectedIndex == 2 ? selectedColor : unselectedColor,
                               ),
                               Text(
-                                'Profile',
+                                'Профайл',
                                 style: TextStyle(
-                                  color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                                  color: _selectedIndex == 2 ? selectedColor : unselectedColor,
                                   fontSize: 12,
                                 ),
                               ),
@@ -509,21 +479,23 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-  // --- End Custom Bottom Navigation Bar ---
 
   @override
   Widget build(BuildContext context) {
     Widget? actualAppBarTitle;
     List<Widget> appBarActions = [];
-    final isHomeTab = _selectedIndex == 0;
-    final isPatientListScreen = isHomeTab && _homeContentIndex == 0;
+    final isSecondTab = _selectedIndex == 1;
+    final isPatientListScreen = isSecondTab && _homeContentIndex == 0;
 
     // --- Simplified AppBar Logic ---
-    if (isHomeTab) {
-      // Show the current sub-screen title
-      actualAppBarTitle = Text(_getCurrentHomeTitle());
+    // if (isHomeTab) {
+    //   // --- Simplified AppBar Logic ---
+    //   actualAppBarTitle = Text(_getCurrentTitle());
 
-      // Only show refresh if we are on the original PatientListScreen
+    actualAppBarTitle = Text(_getCurrentTitle());
+
+    if (isSecondTab) {
+      // Only show refresh if we are on the original PatientListScreen ('Түргэн тусламж')
       if (isPatientListScreen) {
         appBarActions.add(
           IconButton(
@@ -535,11 +507,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         );
       }
-    } else {
-      // Profile Tab
-      actualAppBarTitle = const Text('Profile');
     }
-    // --- End Simplified AppBar Logic ---
 
     return Scaffold(
       appBar: AppBar(
@@ -625,15 +593,14 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       // Use the new _getBody() for conditional content
+
+      // Use the new _getBody() for conditional content
       body: _getBody(),
 
       // --- Custom Bottom Navigation Bar ---
       bottomNavigationBar: Material(
         color: Colors.white,
-        child: SafeArea(
-          top: false,
-          child: SizedBox(height: 60, child: Container(child: _buildCustomBottomNavBar())),
-        ),
+        child: SafeArea(top: false, child: SizedBox(height: 60, child: _buildCustomBottomNavBar())),
       ),
       // -----------------------------
     );

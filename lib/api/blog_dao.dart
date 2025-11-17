@@ -1,0 +1,21 @@
+import 'package:doctor_app/api/base_dao.dart';
+import 'package:doctor_app/constants.dart';
+
+//Нийтлэл дуудах DAO
+class BlogDAO extends BaseDAO {
+  //Түргэн тусмалжийн жагсаалт дуудах
+  Future<ApiResponse<List<dynamic>>> getAllNews() {
+    return get<List<dynamic>>(
+      '${Constants.runnerUrl}/blog/all/unauthorized/list',
+      config: const RequestConfig(excludeToken: false),
+    );
+  }
+
+  //Түргэн тусмалжийн жагсаалт дуудах
+  Future<ApiResponse<dynamic>> getNewsDetail(String id) {
+    return get<dynamic>(
+      '${Constants.runnerUrl}/blog/all/unauthorized?_id=$id',
+      config: const RequestConfig(excludeToken: false),
+    );
+  }
+}
