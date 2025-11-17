@@ -54,7 +54,7 @@ class RequestConfig {
 abstract class BaseDAO {
   Future<ApiResponse<T>> post<T>(
     String url, {
-    Map<String, dynamic>? body,
+    dynamic body,
     RequestConfig config = const RequestConfig(),
     T Function(dynamic)? parse,
   }) async {

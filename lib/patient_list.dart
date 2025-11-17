@@ -685,7 +685,10 @@ $prettyJson
                                   ),
                                   Html(
                                     data:
-                                        '$patientName | $patientRegNo<br>$patientPhone<br>Хүйс: $patientGender',
+                                        'Нэр: $patientName<br>РД: $patientRegNo<br>Утас:$patientPhone<br>Хүйс: ' +
+                                        (patientGender == 'MALE' || patientGender == 'FEMALE'
+                                            ? patientGender
+                                            : 'Тодорхойгүй'),
                                   ),
                                   const SizedBox(height: 5),
                                   const Text(

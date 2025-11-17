@@ -3,7 +3,7 @@ import 'package:doctor_app/constants.dart';
 
 //Байршил солилцох үйлдлийн DAO
 class MapDAO extends BaseDAO {
-  //Өрөөний мэдээлэл авах
+  //Түргэн тусмалжийн жагсаалт дуудах
   Future<ApiResponse<List<dynamic>>> getPatientsListAmbulance() {
     return get<List<dynamic>>(
       '${Constants.appUrl}/room/get/driver',
@@ -11,6 +11,22 @@ class MapDAO extends BaseDAO {
         headerType: HeaderType.xtokenAndTenantAndxmedsoftToken,
         excludeToken: true,
       ),
+    );
+  }
+
+  //Яаралтай тусламжийн жагсаалт дуудах
+  Future<ApiResponse<List<dynamic>>> getPatientsListEmergency(
+    List<String> body,
+    String dateFrom,
+    String dateTo,
+  ) {
+    return post<List<dynamic>>(
+      '${Constants.runnerUrl}/gateway/general/post/api/inpatient/emergency/getAllEmergencies/bydate?datefrom=$dateFrom&dateto=$dateTo',
+      config: const RequestConfig(
+        headerType: HeaderType.xtokenAndTenantAndxmedsoftToken,
+        excludeToken: false,
+      ),
+      body: body,
     );
   }
 

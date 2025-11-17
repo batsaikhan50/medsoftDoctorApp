@@ -223,6 +223,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Returns the content for the Home/Inbox tab
   Widget _getHomeContent() {
+    debugPrint("_getHomeContent called with _homeContentIndex: $_homeContentIndex");
     // 0 is the original 'myHomePage' (PatientListScreen)
     if (_homeContentIndex == 0) {
       return PatientListScreen(key: _patientListKey);
