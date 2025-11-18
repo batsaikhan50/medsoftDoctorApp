@@ -366,34 +366,34 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // --- 1. NEW EMPTY HOME SCREEN (INDEX 0) ---
-                  SizedBox(
-                    width: screenWidth / 3,
-                    child: Material(
-                      color: Colors.white,
-                      child: InkWell(
-                        onTap: () => _onItemTapped(0),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.home_outlined, // Icon for the new screen
-                                color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                              ),
-                              Text(
-                                'Нүүр хуудас',
-                                style: TextStyle(
-                                  color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // --- 1. HOME SCREEN (INDEX 0) ---
+                  // SizedBox(
+                  //   width: screenWidth / 3,
+                  //   child: Material(
+                  //     color: Colors.white,
+                  //     child: InkWell(
+                  //       onTap: () => _onItemTapped(0),
+                  //       child: Center(
+                  //         child: Column(
+                  //           mainAxisSize: MainAxisSize.min,
+                  //           children: [
+                  //             Icon(
+                  //               Icons.home_outlined, // Icon for the new screen
+                  //               color: _selectedIndex == 0 ? selectedColor : unselectedColor,
+                  //             ),
+                  //             Text(
+                  //               'Нүүр хуудас',
+                  //               style: TextStyle(
+                  //                 color: _selectedIndex == 0 ? selectedColor : unselectedColor,
+                  //                 fontSize: 12,
+                  //               ),
+                  //             ),
+                  //           ],
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
 
                   // --- 2. NESTED MENU (INDEX 1) ---
                   SizedBox(
