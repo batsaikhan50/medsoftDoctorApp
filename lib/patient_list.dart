@@ -1,16 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/api/map_dao.dart';
 import 'package:doctor_app/login.dart';
 import 'package:doctor_app/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../constants.dart';
 
 class PatientListScreen extends StatefulWidget {
   const PatientListScreen({super.key});
@@ -72,22 +68,22 @@ class PatientListScreenState extends State<PatientListScreen> {
 
     if (response.statusCode == 200) {
       final json = response.data;
-      const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+      // const JsonEncoder encoder = JsonEncoder.withIndent('  ');
 
-      final String prettyJson = response.data != null ? encoder.convert(response.data) : 'null';
+      // final String prettyJson = response.data != null ? encoder.convert(response.data) : 'null';
 
-      final String fullLogMessage =
-          '''
-############################################
-### FULL API RESPONSE (waitQR) ###
+      //       final String fullLogMessage =
+      //           '''
+      // ############################################
+      // ### FULL API RESPONSE (waitQR) ###
 
-Status Code: ${response.statusCode}
-Success: ${response.success}
-Message: ${response.message}
---- Data (Pretty JSON) ---
-$prettyJson
-############################################
-''';
+      // Status Code: ${response.statusCode}
+      // Success: ${response.success}
+      // Message: ${response.message}
+      // --- Data (Pretty JSON) ---
+      // $prettyJson
+      // ############################################
+      // ''';
       // debugPrint(fullLogMessage, wrapWidth: 1024);
       if (response.success == true) {
         setState(() {
@@ -532,7 +528,7 @@ $prettyJson
   ) {
     // Ensure sharedPreferencesData is accessible or passed if it's not a stateful widget's member
     // Assuming 'tenantDomain' is accessible here, as in _buildUzlegButton
-    final tenantDomain = sharedPreferencesData['tenantDomain'] ?? '';
+    final String tenantDomain = sharedPreferencesData['tenantDomain'] ?? '';
 
     return SizedBox(
       height: 48,
@@ -584,7 +580,7 @@ $prettyJson
           body: isLoading
               ? const Center(child: CircularProgressIndicator())
               : ListView.builder(
-                  key: PageStorageKey('PatientListScrollKey'),
+                  // key: PageStorageKey('PatientListScrollKey'),
                   padding: const EdgeInsets.all(12.0),
                   itemCount: patients.length,
                   itemBuilder: (context, index) {
@@ -648,7 +644,7 @@ $prettyJson
                               data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                               child: ExpansionTile(
                                 // key: PageStorageKey<String>(patients.elementAt(index)['_id']),
-                                key: PageStorageKey(patientId),
+                                // key: PageStorageKey(patientId),
                                 initiallyExpanded: false,
                                 tilePadding: const EdgeInsets.symmetric(
                                   horizontal: 16,

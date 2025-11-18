@@ -49,9 +49,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 2,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           alignment: Alignment.centerLeft,
@@ -60,9 +58,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 
-  Future<void> _handleRefresh() async {
-    await _controller.reload();
-  }
+  // Future<void> _handleRefresh() async {
+  //   await _controller.reload();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -82,12 +80,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.only(
-                      left: 8,
-                      right: 12,
-                      top: 1,
-                      bottom: 1,
-                    ),
+                    padding: const EdgeInsets.only(left: 8, right: 12, top: 1, bottom: 1),
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.all(Radius.circular(25)),
@@ -95,11 +88,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.arrow_back,
-                          color: Colors.black,
-                          size: 18,
-                        ),
+                        const Icon(Icons.arrow_back, color: Colors.black, size: 18),
                         const SizedBox(width: 4),
                         Baseline(
                           baselineType: TextBaseline.alphabetic,
@@ -132,10 +121,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             ],
           ),
         ),
-        body: SafeArea(
-          bottom: false,
-          child: WebViewWidget(controller: _controller),
-        ),
+        body: SafeArea(bottom: false, child: WebViewWidget(controller: _controller)),
       ),
     );
   }

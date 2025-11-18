@@ -4,13 +4,11 @@ import 'dart:io';
 
 import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/claim_qr.dart';
-import 'package:doctor_app/constants.dart';
 import 'package:doctor_app/main.dart';
 import 'package:doctor_app/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
-import 'package:http/http.dart' as http;
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -88,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   List<Map<String, String>> _serverNames = [];
   Map<String, dynamic> sharedPreferencesData = {};
 
-  Map<String, bool> _passwordRulesStatus = {};
+  // Map<String, bool> _passwordRulesStatus = {};
   String? _passwordCheckValidationError;
   String? _regNoValidationError;
   String? _firstnameValidationError;
@@ -179,10 +177,10 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
   void _updatePasswordRules() {
     final password = _passwordController.text;
-    final rules = _validatePasswordRules(password);
+    // final rules = _validatePasswordRules(password);
 
     setState(() {
-      _passwordRulesStatus = rules;
+      // _passwordRulesStatus = rules;
       _passwordCheckValidationError = _validatePasswordMatch(
         password,
         _passwordCheckController.text,
@@ -258,49 +256,49 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _validateName() {
-    final firstname = _firstnameController.text.trim().toUpperCase();
-    final lastname = _lastnameController.text.trim().toUpperCase();
+  // void _validateName() {
+  //   final firstname = _firstnameController.text.trim().toUpperCase();
+  //   final lastname = _lastnameController.text.trim().toUpperCase();
 
-    setState(() {
-      if (firstname.isEmpty) {
-        _firstnameValidationError = null;
-      } else if (!mongolianCyrillicRegex.hasMatch(firstname)) {
-        _firstnameValidationError = 'Кирилл үсгээр бичнэ үү.';
-      } else {
-        _firstnameValidationError = null;
-      }
+  //   setState(() {
+  //     if (firstname.isEmpty) {
+  //       _firstnameValidationError = null;
+  //     } else if (!mongolianCyrillicRegex.hasMatch(firstname)) {
+  //       _firstnameValidationError = 'Кирилл үсгээр бичнэ үү.';
+  //     } else {
+  //       _firstnameValidationError = null;
+  //     }
 
-      if (lastname.isEmpty) {
-        _lastnameValidationError = null;
-      } else if (!mongolianCyrillicRegex.hasMatch(lastname)) {
-        _lastnameValidationError = 'Кирилл буруу байна';
-      } else {
-        _lastnameValidationError = null;
-      }
-    });
-  }
+  //     if (lastname.isEmpty) {
+  //       _lastnameValidationError = null;
+  //     } else if (!mongolianCyrillicRegex.hasMatch(lastname)) {
+  //       _lastnameValidationError = 'Кирилл буруу байна';
+  //     } else {
+  //       _lastnameValidationError = null;
+  //     }
+  //   });
+  // }
 
-  bool _validateRegisterInputs() {
-    final password = _passwordController.text;
-    final passwordMatchError = _validatePasswordMatch(password, _passwordCheckController.text);
-    final rules = _validatePasswordRules(password);
+  // bool _validateRegisterInputs() {
+  //   final password = _passwordController.text;
+  //   final passwordMatchError = _validatePasswordMatch(password, _passwordCheckController.text);
+  //   final rules = _validatePasswordRules(password);
 
-    final regNo = _regNoController.text.trim().toUpperCase();
-    if (regNo.isEmpty || !_regNoRegex.hasMatch(regNo)) {
-      _regNoValidationError = 'Регистрын дугаар буруу байна';
-    } else {
-      _regNoValidationError = null;
-    }
+  //   final regNo = _regNoController.text.trim().toUpperCase();
+  //   if (regNo.isEmpty || !_regNoRegex.hasMatch(regNo)) {
+  //     _regNoValidationError = 'Регистрын дугаар буруу байна';
+  //   } else {
+  //     _regNoValidationError = null;
+  //   }
 
-    setState(() {
-      _passwordRulesStatus = rules;
-      _passwordCheckValidationError = passwordMatchError;
-    });
+  //   setState(() {
+  //     // _passwordRulesStatus = rules;
+  //     _passwordCheckValidationError = passwordMatchError;
+  //   });
 
-    final allPassed = rules.values.every((passed) => passed == true);
-    return allPassed && passwordMatchError == null && _regNoValidationError == null;
-  }
+  //   final allPassed = rules.values.every((passed) => passed == true);
+  //   return allPassed && passwordMatchError == null && _regNoValidationError == null;
+  // }
 
   // Future<void> _register() async {
   //   setState(() {
@@ -379,7 +377,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
   Future<void> callWaitApi(BuildContext context, String token) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      // final prefs = await SharedPreferences.getInstance();
       // final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
       // final server = prefs.getString('X-Tenant') ?? '';
 
@@ -524,17 +522,17 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     });
   }
 
-  Map<String, bool> _validatePasswordRules(String password) {
-    return {
-      'Нууц үгэнд дор хаяж нэг тоо байх ёстой': password.contains(RegExp(r'\d')),
-      'Нууц үгэнд дор хаяж нэг жижиг үсэг байх ёстой': password.contains(RegExp(r'[a-z]')),
-      'Нууц үгэнд дор хаяж нэг том үсэг байх ёстой': password.contains(RegExp(r'[A-Z]')),
-      'Нууц үгэнд дор хаяж нэг тусгай тэмдэгт байх ёстой': password.contains(
-        RegExp(r"[!@#&()\[\]{}:;',?/*~$^+=<>]"),
-      ),
-      'Нууц үгийн урт 10-35 тэмдэгт байх ёстой': password.length >= 10 && password.length <= 35,
-    };
-  }
+  // Map<String, bool> _validatePasswordRules(String password) {
+  //   return {
+  //     'Нууц үгэнд дор хаяж нэг тоо байх ёстой': password.contains(RegExp(r'\d')),
+  //     'Нууц үгэнд дор хаяж нэг жижиг үсэг байх ёстой': password.contains(RegExp(r'[a-z]')),
+  //     'Нууц үгэнд дор хаяж нэг том үсэг байх ёстой': password.contains(RegExp(r'[A-Z]')),
+  //     'Нууц үгэнд дор хаяж нэг тусгай тэмдэгт байх ёстой': password.contains(
+  //       RegExp(r"[!@#&()\[\]{}:;',?/*~$^+=<>]"),
+  //     ),
+  //     'Нууц үгийн урт 10-35 тэмдэгт байх ёстой': password.length >= 10 && password.length <= 35,
+  //   };
+  // }
 
   String? _validatePasswordMatch(String password, String confirmPassword) {
     if (password != confirmPassword) {

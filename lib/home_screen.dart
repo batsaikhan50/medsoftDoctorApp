@@ -119,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       barrierDismissible: true,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         insetPadding: const EdgeInsets.all(16),
         child: FutureBuilder(
           future: blogDAO.getNewsDetail(id),
