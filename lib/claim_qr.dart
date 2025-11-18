@@ -39,13 +39,13 @@ class _ClaimQRScreenState extends State<ClaimQRScreen> {
       // );
 
       if (response.statusCode == 200) {
-        log("Claim success");
+        debugPrint("Claim success");
         claimSuccessful = true;
       } else {
-        log("Claim failed: ${response.statusCode}");
+        debugPrint("Claim failed: ${response.statusCode}");
       }
     } catch (e) {
-      log("Error calling claim API: $e");
+      debugPrint("Error calling claim API: $e");
     }
 
     if (!mounted) return;

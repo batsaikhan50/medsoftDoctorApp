@@ -61,11 +61,11 @@ class _QrScanScreenState extends State<QrScanScreen> {
       }
 
       if (token == null) {
-        log("Invalid QR format");
+        debugPrint("Invalid QR format");
         return;
       }
 
-      log("Extracted token: $token");
+      // debugPrint("Extracted token: $token");
 
       // final prefs = await SharedPreferences.getInstance();
       // final tokenSaved = prefs.getString('X-Medsoft-Token') ?? '';
@@ -84,38 +84,39 @@ class _QrScanScreenState extends State<QrScanScreen> {
       final response = await _authDao.waitQR(token);
 
       // 1. Prepare the JSON data
-      const JsonEncoder encoder = JsonEncoder.withIndent('  '); // '  ' for 2-space indentation
+      // const JsonEncoder encoder = JsonEncoder.withIndent('  '); // '  ' for 2-space indentation
       // Handle potentially null data before conversion
-      final String prettyJson = response.data != null ? encoder.convert(response.data) : 'null';
+      // final String prettyJson = response.data != null ? encoder.convert(response.data) : 'null';
 
-      // 2. Build the full, organized log message
-      final String fullLogMessage =
-          '''
-############################################
-### FULL API RESPONSE (waitQR) ###
+      // 2. Build the full, organized debugPrint message
+      //       final String fullLogMessage =
+      //           '''
+      // ############################################
+      // ### FULL API RESPONSE (waitQR) ###
 
-Status Code: ${response.statusCode}
-Success: ${response.success} 
-Message: ${response.message}
---- Data (Pretty JSON) ---
-$prettyJson
-############################################
-''';
+      // Status Code: ${response.statusCode}
+      // Success: ${response.success}
+      // Message: ${response.message}
+      // --- Data (Pretty JSON) ---
+      // $prettyJson
+      // ############################################
+      // ''';
 
-      // 3. Print the log message using debugPrint with a wide wrap
+      // 3. Print the debugPrint message using debugPrint with a wide wrap
       // Setting wrapWidth to a large number (e.g., 1024 or higher) prevents truncation.
       // debugPrint(fullLogMessage, wrapWidth: 1024);
       if (response.statusCode == 200) {
+        debugPrint("Wait API success: ${response.statusCode}");
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ClaimQRScreen(token: token!)),
         );
       } else {
-        log("Wait API failed: ${response.statusCode}");
+        debugPrint("Wait API failed: ${response.statusCode}");
       }
     } catch (e) {
-      log("Error handling QR: $e");
+      debugPrint("Error handling QR: $e");
     }
   }
 
