@@ -216,7 +216,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onItemTapped(int index) {
     // Check if the index is different to avoid unnecessary rebuilds,
     // and ensure it's a valid index (0, 1, or 2).
-    if (index != _selectedIndex && index >= 0 && index <= 2) {
+    if (index != _selectedIndex && index >= 0 && index <= 3) {
       setState(() {
         _selectedIndex = index;
       });
@@ -245,7 +245,10 @@ class _MyHomePageState extends State<MyHomePage> {
         currentContent = _getSecondTabContent(); // 2nd option (Nested Menu)
         break;
       case 2:
-        currentContent = const ProfileScreen(); // 3rd option
+        currentContent = const QrScanScreen(); // 3rd option
+        break;
+      case 3:
+        currentContent = const ProfileScreen(); // 4th option
         break;
       default:
         currentContent = const Center(child: Text("Error: Unknown Tab"));
@@ -395,7 +398,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   //   ),
                   // ),
 
-                  // --- 2. NESTED MENU (INDEX 1) ---
+                  // --- 1. NESTED MENU (INDEX 0) ---
                   SizedBox(
                     width: screenWidth / 3,
                     child: Material(
@@ -443,7 +446,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
 
-                  // --- 3. PROFILE (INDEX 2) ---
+                  // --- 2. QR Screen (INDEX 1) ---
                   SizedBox(
                     width: screenWidth / 3,
                     child: Material(
@@ -455,13 +458,42 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.person,
+                                Icons.qr_code_scanner,
                                 color: _selectedIndex == 2 ? selectedColor : unselectedColor,
+                              ),
+                              Text(
+                                'QR сканнер',
+                                style: TextStyle(
+                                  color: _selectedIndex == 2 ? selectedColor : unselectedColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // --- 3. PROFILE (INDEX 2) ---
+                  SizedBox(
+                    width: screenWidth / 3,
+                    child: Material(
+                      color: Colors.white,
+                      child: InkWell(
+                        onTap: () => _onItemTapped(3),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.person,
+                                color: _selectedIndex == 3 ? selectedColor : unselectedColor,
                               ),
                               Text(
                                 'Профайл',
                                 style: TextStyle(
-                                  color: _selectedIndex == 2 ? selectedColor : unselectedColor,
+                                  color: _selectedIndex == 3 ? selectedColor : unselectedColor,
                                   fontSize: 12,
                                 ),
                               ),
