@@ -16,6 +16,9 @@ class EmergencyListScreen extends StatefulWidget {
 
 class EmergencyListScreenState extends State<EmergencyListScreen> {
   List<dynamic> patients = [];
+  List<dynamic> filteredPatients = [];
+  final TextEditingController _searchController = TextEditingController();
+
   bool isLoading = true;
   String? username;
   Map<String, dynamic> sharedPreferencesData = {};
@@ -61,7 +64,7 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
     super.initState();
     fetchPatients(initialLoad: true);
     _loadSharedPreferencesData();
-
+    _searchController.addListener(_filterPatients); // Add listener
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       refreshPatients();
     });
@@ -75,6 +78,27 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
   void dispose() {
     _refreshTimer?.cancel();
     super.dispose();
+  }
+
+  void _filterPatients() {
+    final query = _searchController.text.toLowerCase().trim();
+
+    setState(() {
+      if (query.isEmpty) {
+        // If the query is empty, show the full list
+        filteredPatients = patients;
+      } else {
+        // Filter based on patientName or patientRegNo
+        filteredPatients = patients.where((patient) {
+          // Fields are directly under the patient map for EmergencyList
+          final String patientName = patient['patientName']?.toString().toLowerCase() ?? '';
+          final String patientRegNo = patient['patientRegNo']?.toString().toLowerCase() ?? '';
+
+          // Check if the query is contained in any of the fields
+          return patientName.contains(query) || patientRegNo.contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> _pickDate({required bool isFrom}) async {
@@ -150,6 +174,7 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
       if (response.success == true) {
         setState(() {
           patients = json as List;
+          _filterPatients();
           isLoading = false;
         });
       }
@@ -615,6 +640,70 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
     );
   }
 
+  Widget _buildSearchBar(bool isTablet) {
+    const Color customTeal = Color(0xFF00CCCC);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 6.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: isTablet ? 600 : 700),
+          child: Material(
+            elevation: 2.0, // Set the desired elevation
+            borderRadius: BorderRadius.circular(12), // Match the TextField's border radius
+            shadowColor: customTeal.withOpacity(0.5),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                labelText: 'Нэр эсвэл Регистрийн дугаараар хайх',
+                hintText: 'Хайлт...',
+                prefixIcon: const Icon(Icons.search, color: customTeal), // Optional: set icon color
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.clear,
+                          color: customTeal,
+                        ), // Optional: set clear icon color
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                // --- UPDATED BORDER CONFIGURATION ---
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: customTeal), // Default state color
+                ),
+                // Ensure border color is set when focused
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: customTeal,
+                    width: 2.0,
+                  ), // Focus state color and thickness
+                ),
+                // Optional: Set a subtle color for the unfocused border
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: customTeal,
+                    width: 1.0,
+                  ), // Enabled state color
+                ),
+                // ------------------------------------
+                contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+              ),
+              onChanged: (value) {
+                _filterPatients();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<SharedPreferences>(
@@ -629,7 +718,6 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
         // final tenantDomain = prefs.getString('tenantDomain') ?? '';
 
         final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
-
         return Scaffold(
           body: Column(
             children: [
@@ -699,16 +787,37 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
               ),
               const SizedBox(height: 0),
 
+              // --- CHANGES START HERE ---
+              _buildSearchBar(isTablet), // Integrate search bar
+              // --- CHANGES END HERE ---
               Expanded(
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
+                    // Check if search has results
+                    : filteredPatients.isEmpty && _searchController.text.isNotEmpty
+                    ? const Center(
+                        child: Text(
+                          'Хайсан үгээр өвчтөн олдсонгүй',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      )
+                    // Check if the original list is empty (no data at all)
+                    : filteredPatients.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Өвчтөний жагсаалт хоосон байна.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      )
                     : ListView.builder(
                         // key: PageStorageKey('EmergencyListScrollKey'),
-                        padding: const EdgeInsets.all(12.0),
-                        itemCount: patients.length,
-
+                        padding: const EdgeInsets.only(left: 12.0, right: 12.0, bottom: 12.0),
+                        // --- CHANGES START HERE ---
+                        itemCount: filteredPatients.length, // Use filtered list
                         itemBuilder: (context, index) {
-                          final Map<String, dynamic> patient = patients[index];
+                          final Map<String, dynamic> patient =
+                              filteredPatients[index]; // Use filtered list
+                          // --- CHANGES END HERE ---
                           // debugPrint('Patient data: $patient');
                           // final roomId = patient['roomId'];
                           final emergencyRequestId = patient['id'];

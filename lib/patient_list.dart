@@ -17,18 +17,23 @@ class PatientListScreen extends StatefulWidget {
 
 class PatientListScreenState extends State<PatientListScreen> {
   List<dynamic> patients = [];
+  List<dynamic> filteredPatients = [];
+
   bool isLoading = true;
   String? username;
   Map<String, dynamic> sharedPreferencesData = {};
   Timer? _refreshTimer;
   final Set<int> _expandedTiles = {};
   final _mapDAO = MapDAO();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     fetchPatients(initialLoad: true);
     _loadSharedPreferencesData();
+
+    _searchController.addListener(_filterPatients);
 
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       refreshPatients();
@@ -42,7 +47,41 @@ class PatientListScreenState extends State<PatientListScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _searchController.removeListener(_filterPatients);
+    _searchController.dispose();
     super.dispose();
+  }
+
+  // --- CORRECTED Filtering logic ---
+  void _filterPatients() {
+    final query = _searchController.text.toLowerCase().trim();
+
+    setState(() {
+      if (query.isEmpty) {
+        // If the query is empty, show the full list
+        filteredPatients = patients;
+      } else {
+        // Filter based on patientPhone, patientName, or patientRegNo
+        filteredPatients = patients.where((patient) {
+          // Access patientPhone and safely convert to string
+          final String patientPhone = patient['patientPhone']?.toString().toLowerCase() ?? '';
+
+          // Safely cast 'data' to Map if possible, otherwise null
+          final Map<String, dynamic>? patientData = patient['data'] is Map
+              ? patient['data'] as Map<String, dynamic>
+              : null;
+
+          // Access nested fields, safely convert to string
+          final String patientName = patientData?['patientName']?.toString().toLowerCase() ?? '';
+          final String patientRegNo = patientData?['patientRegNo']?.toString().toLowerCase() ?? '';
+
+          // Check if the query is contained in any of the fields
+          return patientPhone.contains(query) ||
+              patientName.contains(query) ||
+              patientRegNo.contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> fetchPatients({bool initialLoad = false}) async {
@@ -50,9 +89,9 @@ class PatientListScreenState extends State<PatientListScreen> {
       setState(() => isLoading = true);
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('X-Medsoft-Token') ?? '';
-    final server = prefs.getString('X-Tenant') ?? '';
+    // final prefs = await SharedPreferences.getInstance();
+    // final token = prefs.getString('X-Medsoft-Token') ?? '';
+    // final server = prefs.getString('X-Tenant') ?? '';
 
     // final uri = Uri.parse('${Constants.appUrl}/room/get/driver');
 
@@ -88,6 +127,7 @@ class PatientListScreenState extends State<PatientListScreen> {
       if (response.success == true) {
         setState(() {
           patients = json as List;
+          _filterPatients();
           isLoading = false;
         });
       }
@@ -561,6 +601,72 @@ class PatientListScreenState extends State<PatientListScreen> {
     );
   }
 
+  // --- NEW WIDGET: Search Bar ---
+  Widget _buildSearchBar(bool isTablet) {
+    const Color customTeal = Color(0xFF00CCCC);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 6.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: isTablet ? 600 : 700),
+          child: Material(
+            elevation: 2.0, // Set the desired elevation
+            borderRadius: BorderRadius.circular(12), // Match the TextField's border radius
+            shadowColor: customTeal.withOpacity(0.5),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                // Using the detailed label from your request
+                labelText: 'Утас, Нэр, Регистрийн дугаараар хайх',
+                hintText: 'Хайлт...',
+                prefixIcon: const Icon(Icons.search, color: customTeal), // Optional: set icon color
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.clear,
+                          color: customTeal,
+                        ), // Optional: set clear icon color
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                // --- UPDATED BORDER CONFIGURATION ---
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: customTeal), // Default state color
+                ),
+                // Ensure border color is set when focused
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: customTeal,
+                    width: 2.0,
+                  ), // Focus state color and thickness
+                ),
+                // Optional: Set a subtle color for the unfocused border
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: customTeal,
+                    width: 1.0,
+                  ), // Enabled state color
+                ),
+                // ------------------------------------
+                contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+              ),
+              onChanged: (value) {
+                _filterPatients();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<SharedPreferences>(
@@ -572,226 +678,282 @@ class PatientListScreenState extends State<PatientListScreen> {
 
         final prefs = snapshot.data!;
         final xMedsoftToken = prefs.getString('X-Medsoft-Token') ?? '';
-        final tenantDomain = prefs.getString('tenantDomain') ?? '';
+        // final tenantDomain = prefs.getString('tenantDomain') ?? '';
 
         final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
 
         return Scaffold(
-          body: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  // key: PageStorageKey('PatientListScrollKey'),
-                  padding: const EdgeInsets.all(12.0),
-                  itemCount: patients.length,
-                  itemBuilder: (context, index) {
-                    final patient = patients[index];
-                    final roomId = patient['roomId'];
-                    final arrived = patient['arrived'] ?? false;
-                    final distance = patient['totalDistance'] ?? 'N/A';
-                    final duration = patient['totalDuration'] ?? 'N/A';
-                    final patientPhone = patient['patientPhone'] ?? '';
-                    final patientData = patient['data'] ?? {};
-                    final values = patientData != {} ? patientData['values'] : null;
+          body: Column(
+            children: [
+              _buildSearchBar(isTablet),
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    // Check if search has results
+                    : filteredPatients.isEmpty && _searchController.text.isNotEmpty
+                    ? const Center(
+                        child: Text(
+                          'Хайсан үгээр өвчтөн олдсонгүй',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      )
+                    // Check if the original list is empty (no data at all)
+                    : filteredPatients.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Өвчтөний жагсаалт хоосон байна.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      )
+                    : ListView.builder(
+                        // key: PageStorageKey('PatientListScrollKey'),
+                        padding: const EdgeInsets.only(left: 12.0, right: 12.0, bottom: 12.0),
+                        // Use filteredPatients list
+                        itemCount: filteredPatients.length,
+                        itemBuilder: (context, index) {
+                          final patient = filteredPatients[index];
+                          final roomId = patient['roomId'];
+                          final arrived = patient['arrived'] ?? false;
+                          final distance = patient['totalDistance'] ?? 'N/A';
+                          final duration = patient['totalDuration'] ?? 'N/A';
+                          final patientPhone = patient['patientPhone'] ?? '';
+                          final patientData = patient['data'] ?? {};
+                          final values = patientData != {} ? patientData['values'] : null;
 
-                    String getValue(String key) {
-                      if (values != null && values[key] != null && values[key]['value'] != null) {
-                        return values[key]['value'] as String;
-                      }
-                      return '';
-                    }
+                          String getValue(String key) {
+                            if (values != null &&
+                                values[key] != null &&
+                                values[key]['value'] != null) {
+                              return values[key]['value'] as String;
+                            }
+                            return '';
+                          }
 
-                    final patientName = patientData['patientName'] ?? '';
-                    final patientRegNo = patientData['patientRegNo'] ?? '';
-                    final patientGender = patientData['patientGender'] ?? '';
+                          final patientName = patientData['patientName'] ?? '';
+                          final patientRegNo = patientData['patientRegNo'] ?? '';
+                          final patientGender = patientData['patientGender'] ?? '';
 
-                    final reportedCitizen = getValue('reportedCitizen');
-                    final received = getValue('received');
-                    final type = getValue('type');
-                    final time = getValue('time');
-                    final ambulanceTeam = getValue('ambulanceTeam');
+                          final reportedCitizen = getValue('reportedCitizen');
+                          final received = getValue('received');
+                          final type = getValue('type');
+                          final time = getValue('time');
+                          final ambulanceTeam = getValue('ambulanceTeam');
 
-                    final address = _extractLine(reportedCitizen, 'Хаяг');
-                    final receivedShort = _extractReceivedShort(received);
+                          final address = _extractLine(reportedCitizen, 'Хаяг');
+                          final receivedShort = _extractReceivedShort(received);
 
-                    final isExpanded = _expandedTiles.contains(index);
+                          final isExpandedCurrent = _expandedTiles.contains(index);
 
-                    final screenWidth = MediaQuery.of(context).size.width;
-                    // Define the threshold for "narrow screen" (iPhone portrait)
-                    final isNarrowScreen = screenWidth < 500;
-                    // Define the threshold for "wide screen" (iPad/Landscape) for font size
-                    final isWideScreen = screenWidth >= 600;
+                          final screenWidth = MediaQuery.of(context).size.width;
+                          // Define the threshold for "narrow screen" (iPhone portrait)
+                          final isNarrowScreen = screenWidth < 500;
+                          // Define the threshold for "wide screen" (iPad/Landscape) for font size
+                          final isWideScreen = screenWidth >= 600;
 
-                    // Set alignment: start for narrow, end for wide
-                    final mainAxisAlignment = isNarrowScreen
-                        ? MainAxisAlignment.start
-                        : MainAxisAlignment.center;
+                          // Set alignment: start for narrow, end for wide
+                          final mainAxisAlignment = isNarrowScreen
+                              ? MainAxisAlignment.start
+                              : MainAxisAlignment.center;
 
-                    // Set font size: smaller for the tight narrow screen layout
-                    final buttonFontSize = isWideScreen ? 16.0 : 11.5;
-                    // final patient = patients[index];
-                    final patientId = patient['_id'];
+                          // Set font size: smaller for the tight narrow screen layout
+                          final buttonFontSize = isWideScreen ? 16.0 : 11.5;
+                          // final patientId = patient['_id']; // Not used
 
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: isTablet ? 600 : 700),
-                        child: Card(
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 3,
-                          margin: const EdgeInsets.symmetric(vertical: 6.0),
-                          child: Container(
-                            child: Theme(
-                              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                              child: ExpansionTile(
-                                // key: PageStorageKey<String>(patients.elementAt(index)['_id']),
-                                // key: PageStorageKey(patientId),
-                                initiallyExpanded: false,
-                                tilePadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 1,
+                          return Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: isTablet ? 600 : 700),
+                              child: Card(
+                                color: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                onExpansionChanged: (expanded) {
-                                  setState(() {
-                                    if (expanded) {
-                                      _expandedTiles.add(index);
-                                    } else {
-                                      _expandedTiles.remove(index);
-                                    }
-                                  });
-                                },
-                                title: Text(
-                                  patientPhone,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (!isExpanded && address.isNotEmpty)
-                                      Text(address, overflow: TextOverflow.ellipsis, maxLines: 1),
-                                    if (!isExpanded && receivedShort.isNotEmpty)
-                                      Text(
-                                        receivedShort,
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
+                                elevation: 3,
+                                margin: const EdgeInsets.symmetric(vertical: 6.0),
+                                child: Container(
+                                  child: Theme(
+                                    data: Theme.of(
+                                      context,
+                                    ).copyWith(dividerColor: Colors.transparent),
+                                    child: ExpansionTile(
+                                      // key: PageStorageKey<String>(patients.elementAt(index)['_id']),
+                                      // key: PageStorageKey(patientId),
+                                      initiallyExpanded: isExpandedCurrent,
+                                      tilePadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 1,
                                       ),
-                                    const SizedBox(height: 8),
-                                    Padding(
-                                      // REMOVE THE RIGHT PADDING or adjust it if necessary
-                                      // padding: EdgeInsets.only(right: isNarrowScreen ? 0 : 100.0),
-                                      padding: const EdgeInsets.all(0), // Removed right padding
-                                      child: SingleChildScrollView(
-                                        // WRAP with SingleChildScrollView
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          mainAxisAlignment: mainAxisAlignment,
-                                          children: [
-                                            // Button 1: Үзлэг
-                                            // REMOVED Expanded, ADDED SizedBox with fixed width
-                                            SizedBox(
-                                              width:
-                                                  120, // Increased fixed width for bigger buttons
-                                              child: _buildUzlegButton(
-                                                context,
-                                                roomId,
-                                                xMedsoftToken,
-                                                buttonFontSize,
-                                              ),
-                                            ),
-
-                                            const SizedBox(width: 0),
-
-                                            // Button 2: Баталгаажуулах
-                                            // REMOVED Expanded, ADDED SizedBox with fixed width
-                                            SizedBox(
-                                              width:
-                                                  180, // Increased fixed width for bigger buttons
-                                              child: _buildBatalgaajuulahButton(
-                                                context,
-                                                patient,
-                                                arrived,
-                                                buttonFontSize,
-                                              ),
-                                            ),
-
-                                            // Space for your NEW Button
-                                            const SizedBox(width: 0),
-
-                                            // Button 3: Эм
-                                            // REMOVED Expanded, ADDED SizedBox with fixed width
-                                            SizedBox(
-                                              width:
-                                                  100, // Increased fixed width for bigger buttons
-                                              child: _buildEmButton(
-                                                context,
-                                                roomId,
-                                                xMedsoftToken,
-                                                buttonFontSize,
-                                              ),
-                                            ),
-                                          ],
+                                      onExpansionChanged: (expanded) {
+                                        setState(() {
+                                          if (expanded) {
+                                            _expandedTiles.add(index);
+                                          } else {
+                                            _expandedTiles.remove(index);
+                                          }
+                                        });
+                                      },
+                                      title: Text(
+                                        patientPhone,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
+                                      subtitle: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (!isExpandedCurrent && address.isNotEmpty)
+                                            Text(
+                                              address,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          if (!isExpandedCurrent && receivedShort.isNotEmpty)
+                                            Text(
+                                              receivedShort,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          const SizedBox(height: 8),
+                                          Padding(
+                                            // REMOVE THE RIGHT PADDING or adjust it if necessary
+                                            // padding: EdgeInsets.only(right: isNarrowScreen ? 0 : 100.0),
+                                            padding: const EdgeInsets.all(
+                                              0,
+                                            ), // Removed right padding
+                                            child: SingleChildScrollView(
+                                              // WRAP with SingleChildScrollView
+                                              scrollDirection: Axis.horizontal,
+                                              child: Row(
+                                                mainAxisAlignment: mainAxisAlignment,
+                                                children: [
+                                                  // Button 1: Үзлэг
+                                                  // REMOVED Expanded, ADDED SizedBox with fixed width
+                                                  SizedBox(
+                                                    width:
+                                                        120, // Increased fixed width for bigger buttons
+                                                    child: _buildUzlegButton(
+                                                      context,
+                                                      roomId,
+                                                      xMedsoftToken,
+                                                      buttonFontSize,
+                                                    ),
+                                                  ),
+
+                                                  const SizedBox(width: 0),
+
+                                                  // Button 2: Баталгаажуулах
+                                                  // REMOVED Expanded, ADDED SizedBox with fixed width
+                                                  SizedBox(
+                                                    width:
+                                                        180, // Increased fixed width for bigger buttons
+                                                    child: _buildBatalgaajuulahButton(
+                                                      context,
+                                                      patient,
+                                                      arrived,
+                                                      buttonFontSize,
+                                                    ),
+                                                  ),
+
+                                                  // Space for your NEW Button
+                                                  const SizedBox(width: 0),
+
+                                                  // Button 3: Эм
+                                                  // REMOVED Expanded, ADDED SizedBox with fixed width
+                                                  SizedBox(
+                                                    width:
+                                                        100, // Increased fixed width for bigger buttons
+                                                    child: _buildEmButton(
+                                                      context,
+                                                      roomId,
+                                                      xMedsoftToken,
+                                                      buttonFontSize,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      childrenPadding: const EdgeInsets.all(16.0),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Иргэн:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Html(
+                                          data:
+                                              'Нэр: $patientName<br>РД: $patientRegNo<br>Утас: $patientPhone<br>Хүйс: ' +
+                                              (patientGender == 'MALE' || patientGender == 'FEMALE'
+                                                  ? patientGender
+                                                  : 'Тодорхойгүй'),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'Дуудлага:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(reportedCitizen),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'Хүлээж авсан:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(received),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'Ангилал:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(type),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'Дуудлагын цаг:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(time),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'ТТ-ийн баг:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(ambulanceTeam),
+                                        const SizedBox(height: 5),
+                                        if (arrived) ...[
+                                          Text("Distance: ${(distance as String)}"),
+                                          Text("Duration: ${(duration as String)}"),
+                                        ],
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                                childrenPadding: const EdgeInsets.all(16.0),
-                                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Иргэн:',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  Html(
-                                    data:
-                                        'Нэр: $patientName<br>РД: $patientRegNo<br>Утас: $patientPhone<br>Хүйс: ' +
-                                        (patientGender == 'MALE' || patientGender == 'FEMALE'
-                                            ? patientGender
-                                            : 'Тодорхойгүй'),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'Дуудлага:',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  _buildMultilineHTMLText(reportedCitizen),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'Хүлээж авсан:',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  _buildMultilineHTMLText(received),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'Ангилал:',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  _buildMultilineHTMLText(type),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'Дуудлагын цаг:',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  _buildMultilineHTMLText(time),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'ТТ-ийн баг:',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  _buildMultilineHTMLText(ambulanceTeam),
-                                  const SizedBox(height: 5),
-                                  if (arrived) ...[
-                                    Text("Distance: ${(distance as String)}"),
-                                    Text("Duration: ${(duration as String)}"),
-                                  ],
-                                ],
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
+              ),
+            ],
+          ),
         );
       },
     );

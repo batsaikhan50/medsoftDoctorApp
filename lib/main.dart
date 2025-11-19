@@ -99,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // --- Navigation Bar State ---
   // 0 for Home/Inbox (PatientList/EmptyScreen), 1 for Profile
-  int _selectedIndex = 0;
+  int _selectedIndex = 1;
   // 0 for PatientList (myHomePage), 1 for EmptyScreen
   int _homeContentIndex = 0;
   // -----------------------------
@@ -216,7 +216,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onItemTapped(int index) {
     // Check if the index is different to avoid unnecessary rebuilds,
     // and ensure it's a valid index (0, 1, or 2).
-    if (index != _selectedIndex && index >= 0 && index <= 2) {
+    if (index != _selectedIndex && index >= 0 && index <= 3) {
       setState(() {
         _selectedIndex = index;
       });
@@ -241,13 +241,13 @@ class _MyHomePageState extends State<MyHomePage> {
       // case 0:
       //   currentContent = const HomeScreen(); // 1st option
       // break;
-      case 0:
+      case 1:
         currentContent = _getSecondTabContent(); // 2nd option (Nested Menu)
         break;
-      case 1:
+      case 2:
         currentContent = const QrScanScreen(); // 3rd option
         break;
-      case 2:
+      case 3:
         currentContent = const ProfileScreen(); // 4th option
         break;
       default:
@@ -272,7 +272,7 @@ class _MyHomePageState extends State<MyHomePage> {
     switch (_selectedIndex) {
       // case 0:
       //   return 'Нүүр хуудас';
-      case 0:
+      case 1:
         return _getNestedTabDetails()['title'];
       case 2:
         return 'QR';
@@ -454,19 +454,19 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Material(
                       color: Colors.white,
                       child: InkWell(
-                        onTap: () => _onItemTapped(1),
+                        onTap: () => _onItemTapped(2),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.qr_code_scanner,
-                                color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                                color: _selectedIndex == 2 ? selectedColor : unselectedColor,
                               ),
                               Text(
                                 'QR сканнер',
                                 style: TextStyle(
-                                  color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                                  color: _selectedIndex == 2 ? selectedColor : unselectedColor,
                                   fontSize: 12,
                                 ),
                               ),
@@ -483,19 +483,19 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Material(
                       color: Colors.white,
                       child: InkWell(
-                        onTap: () => _onItemTapped(2),
+                        onTap: () => _onItemTapped(3),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.person,
-                                color: _selectedIndex == 2 ? selectedColor : unselectedColor,
+                                color: _selectedIndex == 3 ? selectedColor : unselectedColor,
                               ),
                               Text(
                                 'Профайл',
                                 style: TextStyle(
-                                  color: _selectedIndex == 2 ? selectedColor : unselectedColor,
+                                  color: _selectedIndex == 3 ? selectedColor : unselectedColor,
                                   fontSize: 12,
                                 ),
                               ),
