@@ -148,7 +148,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
     final scanArea = proportionalSize < maxScanArea ? proportionalSize : maxScanArea;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("QR код унших")),
+      // appBar: AppBar(title: const Text("QR код унших")),
       body: Column(
         children: [
           Expanded(

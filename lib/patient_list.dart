@@ -549,6 +549,15 @@ class PatientListScreenState extends State<PatientListScreen> {
                             ),
                           ],
                         ),
+
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                            },
+                            child: const Text("Буцах", style: TextStyle(fontSize: 16)),
+                          ),
+                        ],
                       );
                     },
                   );

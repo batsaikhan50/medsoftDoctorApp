@@ -268,15 +268,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 gender,
                 subtitle: 'Хүйс',
               ),
-              const Divider(height: 20, thickness: 1),
+              // const Divider(height: 20, thickness: 1),
 
-              // Last Row: Status/Welcome Note (Replacing the DAN note)
-              _buildInfoRow(
-                context,
-                const Icon(Icons.verified_user, color: _wateryGreen),
-                'Та системийн бүртгэлтэй эмч/ажилтан байна.',
-                isMultiline: true,
-              ),
+              // // Last Row: Status/Welcome Note (Replacing the DAN note)
+              // _buildInfoRow(
+              //   context,
+              //   const Icon(Icons.verified_user, color: _wateryGreen),
+              //   'Та системийн бүртгэлтэй эмч/ажилтан байна.',
+              //   isMultiline: true,
+              // ),
             ];
 
             return LayoutBuilder(

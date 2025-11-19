@@ -278,7 +278,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case 1:
         return _getNestedTabDetails()['title'];
       case 2:
-        return 'QR';
+        return 'QR код унших';
       case 3:
         return 'Профайл';
       default:
