@@ -829,8 +829,9 @@ class PatientListScreenState extends State<PatientListScreen> {
                                                   // Button 1: Үзлэг
                                                   // REMOVED Expanded, ADDED SizedBox with fixed width
                                                   SizedBox(
-                                                    width:
-                                                        120, // Increased fixed width for bigger buttons
+                                                    width: isTablet
+                                                        ? 130
+                                                        : 110, // Increased fixed width for bigger buttons
                                                     child: _buildUzlegButton(
                                                       context,
                                                       roomId,
@@ -844,8 +845,9 @@ class PatientListScreenState extends State<PatientListScreen> {
                                                   // Button 2: Баталгаажуулах
                                                   // REMOVED Expanded, ADDED SizedBox with fixed width
                                                   SizedBox(
-                                                    width:
-                                                        180, // Increased fixed width for bigger buttons
+                                                    width: isTablet
+                                                        ? 220
+                                                        : 190, // Increased fixed width for bigger buttons
                                                     child: _buildBatalgaajuulahButton(
                                                       context,
                                                       patient,
@@ -860,8 +862,9 @@ class PatientListScreenState extends State<PatientListScreen> {
                                                   // Button 3: Эм
                                                   // REMOVED Expanded, ADDED SizedBox with fixed width
                                                   SizedBox(
-                                                    width:
-                                                        100, // Increased fixed width for bigger buttons
+                                                    width: isTablet
+                                                        ? 110
+                                                        : 100, // Increased fixed width for bigger buttons
                                                     child: _buildEmButton(
                                                       context,
                                                       roomId,

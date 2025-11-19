@@ -234,6 +234,10 @@ class _MyHomePageState extends State<MyHomePage> {
     return const EmergencyListScreen();
   }
 
+  void _navigateToGuideScreen() {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const GuideScreen()));
+  }
+
   // Your original _getBody() function
   Widget _getBody() {
     Widget currentContent;
@@ -248,8 +252,7 @@ class _MyHomePageState extends State<MyHomePage> {
         currentContent = const QrScanScreen(); // 3rd option
         break;
       case 3:
-        currentContent = const ProfileScreen(); // 4th option
-        break;
+        return ProfileScreen(onGuideTap: _navigateToGuideScreen, onLogoutTap: _logOut);
       default:
         currentContent = const Center(child: Text("Error: Unknown Tab"));
     }
@@ -408,11 +411,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: InkWell(
                         key: _inboxKey, // Anchor for the popup
                         onTap: () {
+                          if (_selectedIndex == 1) {
+                            showNestedMenu(context);
+                          }
                           // Switch to this tab (index 1) first
                           if (_selectedIndex != 1) {
                             setState(() => _selectedIndex = 1);
                           }
-                          showNestedMenu(context);
                         },
                         child: Center(
                           child: Column(

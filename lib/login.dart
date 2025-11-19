@@ -464,6 +464,9 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         debugPrint('Username controller: ${_usernameLoginController.text}');
         await prefs.setString('Username', _usernameLoginController.text);
 
+        await prefs.setString('employee', jsonEncode(response.data!['user']['employee']));
+        debugPrint('PREPS EMPLOYEE: ${prefs.getString('employee') ?? "No employee data"}');
+
         _loadSharedPreferencesData();
 
         final savedToken = await getSavedToken();
