@@ -103,11 +103,22 @@ class _MyHomePageState extends State<MyHomePage> {
   // 0 for PatientList (myHomePage), 1 for EmptyScreen
   int _homeContentIndex = 0;
   // -----------------------------
+  late final List<Widget> _widgetOptions;
 
   @override
   void initState() {
     super.initState();
 
+    _widgetOptions = <Widget>[
+      // Index 0: Not used (as per existing doctor app's _selectedIndex starting at 1)
+      const Center(child: Text("Tab 0 is not used")),
+      // Index 1: Nested Content (PatientList/EmergencyList)
+      _getSecondTabContent(),
+      // Index 2: QR Scanner
+      const QrScanScreen(),
+      // Index 3: Profile
+      ProfileScreen(onGuideTap: _navigateToGuideScreen, onLogoutTap: _logOut),
+    ];
     _loadSharedPreferencesData();
 
     Future<void> saveScannedToken(String token) async {
@@ -219,6 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (index != _selectedIndex && index >= 0 && index <= 3) {
       setState(() {
         _selectedIndex = index;
+        _widgetOptions[1] = _getSecondTabContent();
       });
     }
   }
@@ -240,25 +252,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Your original _getBody() function
   Widget _getBody() {
-    Widget currentContent;
-    switch (_selectedIndex) {
-      // case 0:
-      //   currentContent = const HomeScreen(); // 1st option
-      // break;
-      case 1:
-        currentContent = _getSecondTabContent(); // 2nd option (Nested Menu)
-        break;
-      case 2:
-        currentContent = const QrScanScreen(); // 3rd option
-        break;
-      case 3:
-        return ProfileScreen(onGuideTap: _navigateToGuideScreen, onLogoutTap: _logOut);
-      default:
-        currentContent = const Center(child: Text("Error: Unknown Tab"));
-    }
-
-    // WRAPPING content to explicitly remove top and bottom safe area padding
-    return SafeArea(top: false, bottom: false, child: currentContent);
+    // Use SafeArea to handle top and bottom padding as before
+    return SafeArea(
+      top: false,
+      bottom: false,
+      child: IndexedStack(
+        index: _selectedIndex, // Use the current selected index
+        children: _widgetOptions, // Use the pre-defined list of widgets
+      ),
+    );
   }
 
   // Helper to get the descriptive title and icon for the current Home sub-screen
@@ -294,7 +296,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final nestedTabDetails = _getNestedTabDetails();
     final nestedTabIcon = nestedTabDetails['icon'] as IconData;
     final nestedTabCaption = nestedTabDetails['title'] as String;
-
     void showNestedMenu(BuildContext context) {
       // Need to wait until the current frame finishes rendering before getting RenderBox
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -312,20 +313,17 @@ class _MyHomePageState extends State<MyHomePage> {
           context: context,
           // Position the menu.
           position: RelativeRect.fromLTRB(
-            itemCenter - (menuWidth / 2), // Horizontal position centered on the item
-            // Adjusted Top: A value like 115px is appropriate for two menu items (~110px total height),
-            // ensuring the menu is not pushed too far up.
+            itemCenter - (menuWidth / 2),
             position.dy - 120,
             itemCenter + (menuWidth / 2),
-            position
-                .dy, // Bottom: Aligned exactly with the top edge of the navigation item (no padding).
+            position.dy,
           ),
           items: [
             const PopupMenuItem<int>(
               value: 0,
               child: Row(
                 children: [
-                  Icon(Icons.crisis_alert, color: Colors.redAccent), // Icon added here
+                  Icon(Icons.crisis_alert, color: Colors.redAccent),
                   SizedBox(width: 8),
                   Text('Түргэн тусламж'),
                 ],
@@ -335,7 +333,7 @@ class _MyHomePageState extends State<MyHomePage> {
               value: 1,
               child: Row(
                 children: [
-                  Icon(Icons.local_hospital, color: Colors.red), // Icon added here
+                  Icon(Icons.local_hospital, color: Colors.red),
                   SizedBox(width: 8),
                   Text('Яаралтай'),
                 ],
@@ -347,6 +345,9 @@ class _MyHomePageState extends State<MyHomePage> {
           if (result != null) {
             setState(() {
               _homeContentIndex = result;
+              // **This is the critical line added for the IndexedStack**
+              _widgetOptions[1] = _getSecondTabContent();
+              // --------------------------------------------------------
               // Ensure we are on the Nested tab (index 1) when content changes
               if (_selectedIndex != 1) {
                 _selectedIndex = 1;
