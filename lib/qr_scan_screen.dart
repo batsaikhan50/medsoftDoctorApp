@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:doctor_app/api/auth_dao.dart';
 import 'package:doctor_app/claim_qr.dart';
@@ -18,6 +19,15 @@ class _QrScanScreenState extends State<QrScanScreen> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   bool isScanned = false;
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller!.pauseCamera();
+    }
+    controller!.resumeCamera();
+  }
 
   final _authDao = AuthDAO();
   @override
@@ -148,7 +158,44 @@ class _QrScanScreenState extends State<QrScanScreen> {
     final scanArea = proportionalSize < maxScanArea ? proportionalSize : maxScanArea;
 
     return Scaffold(
-      // appBar: AppBar(title: const Text("QR код унших")),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        // Set centerTitle to false to align the title (your button) to the left
+        centerTitle: false,
+        automaticallyImplyLeading: false, // Hides default back arrow
+        backgroundColor: Colors.transparent, // Transparent to show camera behind
+        elevation: 0,
+        title: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Row(
+            mainAxisSize: MainAxisSize.min, // Wraps content so it doesn't stretch
+            children: [
+              Container(
+                // Using the specific padding and style you requested
+                padding: const EdgeInsets.only(left: 12, right: 16, top: 6, bottom: 6),
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.all(Radius.circular(25)),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.arrow_back, color: Colors.black, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      "Буцах",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: Column(
         children: [
           Expanded(

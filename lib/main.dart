@@ -115,7 +115,8 @@ class _MyHomePageState extends State<MyHomePage> {
       // Index 1: Nested Content (PatientList/EmergencyList)
       _getSecondTabContent(),
       // Index 2: QR Scanner
-      const QrScanScreen(),
+      // const QrScanScreen(),
+      const SizedBox(),
       // Index 3: Profile
       ProfileScreen(onGuideTap: _navigateToGuideScreen, onLogoutTap: _logOut),
     ];
@@ -225,8 +226,15 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _onItemTapped(int index) {
-    // Check if the index is different to avoid unnecessary rebuilds,
-    // and ensure it's a valid index (0, 1, or 2).
+    if (index == 2) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const QrScanScreen())).then((
+        _,
+      ) {
+        debugPrint("Returned from QR Screen");
+      });
+      return;
+    }
+
     if (index != _selectedIndex && index >= 0 && index <= 3) {
       setState(() {
         _selectedIndex = index;
@@ -467,12 +475,15 @@ class _MyHomePageState extends State<MyHomePage> {
                             children: [
                               Icon(
                                 Icons.qr_code_scanner,
-                                color: _selectedIndex == 2 ? selectedColor : unselectedColor,
+                                // Color should never be selected color since the index is never 2
+                                // It should be unselectedColor, as it's a floating action.
+                                color: unselectedColor, // *** MODIFIED ***
                               ),
                               Text(
                                 'QR сканнер',
                                 style: TextStyle(
-                                  color: _selectedIndex == 2 ? selectedColor : unselectedColor,
+                                  // Color should never be selected color since the index is never 2
+                                  color: unselectedColor, // *** MODIFIED ***
                                   fontSize: 12,
                                 ),
                               ),
