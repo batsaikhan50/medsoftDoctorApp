@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:doctor_app/api/auth_dao.dart';
-import 'package:doctor_app/claim_qr.dart';
+import 'package:medsoft_doctor/api/auth_dao.dart';
+import 'package:medsoft_doctor/claim_qr.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';

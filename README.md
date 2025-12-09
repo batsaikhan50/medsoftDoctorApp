@@ -1,4 +1,4 @@
-# doctor_app
+# medsoft_doctor
 
 A new Flutter project.
 

@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:doctor_app/api/map_dao.dart';
-import 'package:doctor_app/login.dart';
-import 'package:doctor_app/webview_screen.dart';
+import 'package:medsoft_doctor/api/map_dao.dart';
+import 'package:medsoft_doctor/login.dart';
+import 'package:medsoft_doctor/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -228,7 +228,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                     MaterialPageRoute(
                       builder: (context) => WebViewScreen(
                         url: '$tenantDomain/request/AmbulanceRequest/$roomId/$xMedsoftToken',
-                        title: 'Форм тест',
+                        title: 'Түргэн тусламж',
                       ),
                     ),
                   );

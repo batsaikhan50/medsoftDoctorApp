@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 // Assuming BlogDAO is in a path accessible by the Patient App
 // You might need to adjust this import based on your actual file structure
-import 'package:doctor_app/api/blog_dao.dart';
+import 'package:medsoft_doctor/api/blog_dao.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 

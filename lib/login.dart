@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:doctor_app/api/auth_dao.dart';
-import 'package:doctor_app/claim_qr.dart';
-import 'package:doctor_app/main.dart';
-import 'package:doctor_app/webview_screen.dart';
+import 'package:medsoft_doctor/api/auth_dao.dart';
+import 'package:medsoft_doctor/claim_qr.dart';
+import 'package:medsoft_doctor/main.dart';
+import 'package:medsoft_doctor/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';

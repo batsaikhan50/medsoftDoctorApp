@@ -1,6 +1,6 @@
 {
-    "name": "doctor_app",
-    "short_name": "doctor_app",
+    "name": "medsoft_doctor",
+    "short_name": "medsoft_doctor",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

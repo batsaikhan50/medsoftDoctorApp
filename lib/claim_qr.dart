@@ -1,6 +1,6 @@
 import 'dart:developer';
 
-import 'package:doctor_app/api/auth_dao.dart';
+import 'package:medsoft_doctor/api/auth_dao.dart';
 import 'package:flutter/material.dart';
 
 import 'main.dart';

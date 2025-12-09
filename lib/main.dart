@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:doctor_app/api/auth_dao.dart';
-import 'package:doctor_app/claim_qr.dart';
-import 'package:doctor_app/constants.dart';
-import 'package:doctor_app/emergency_list.dart';
-import 'package:doctor_app/guide.dart';
-import 'package:doctor_app/home_screen.dart';
-import 'package:doctor_app/patient_list.dart';
-import 'package:doctor_app/profile_screen.dart';
-import 'package:doctor_app/qr_scan_screen.dart';
+import 'package:medsoft_doctor/api/auth_dao.dart';
+import 'package:medsoft_doctor/claim_qr.dart';
+import 'package:medsoft_doctor/constants.dart';
+import 'package:medsoft_doctor/emergency_list.dart';
+import 'package:medsoft_doctor/guide.dart';
+import 'package:medsoft_doctor/home_screen.dart';
+import 'package:medsoft_doctor/patient_list.dart';
+import 'package:medsoft_doctor/profile_screen.dart';
+import 'package:medsoft_doctor/qr_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -480,7 +480,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 color: unselectedColor, // *** MODIFIED ***
                               ),
                               Text(
-                                'QR сканнер',
+                                'QR',
                                 style: TextStyle(
                                   // Color should never be selected color since the index is never 2
                                   color: unselectedColor, // *** MODIFIED ***

@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:doctor_app/api/map_dao.dart';
-import 'package:doctor_app/login.dart';
-import 'package:doctor_app/webview_screen.dart';
+import 'package:medsoft_doctor/api/map_dao.dart';
+import 'package:medsoft_doctor/login.dart';
+import 'package:medsoft_doctor/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -276,7 +276,7 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
                       builder: (context) => WebViewScreen(
                         url:
                             '$tenantDomain/request/EmergencyRequest/$emergencyRequestId/$xMedsoftToken',
-                        title: 'Форм тест',
+                        title: 'Яаралтай',
                       ),
                     ),
                   );
