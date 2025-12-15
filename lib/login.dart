@@ -138,6 +138,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     // 1. Call the DAO function
     final result = await _authDao.getHospitals();
 
+    if (!mounted) return;
+
     setState(() {
       // 2. Check for overall success (HTTP 200, and API 'success': true)
       if (result.success && result.data != null) {
@@ -709,7 +711,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         left: 16,
         right: 16,
         top: MediaQuery.of(context).size.shortestSide >= 600
-            ? MediaQuery.of(context).size.height * 0.15
+            ? MediaQuery.of(context).size.height * 0.10
             : 70,
         bottom: MediaQuery.of(context).viewInsets.bottom + 32,
       ),
