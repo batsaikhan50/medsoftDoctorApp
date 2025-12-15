@@ -100,7 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // --- Navigation Bar State ---
   // 0 for Home/Inbox (PatientList/EmptyScreen), 1 for Profile
   int _selectedIndex = 1;
-  // 0 for PatientList (myHomePage), 1 for EmptyScreen
+  // 0 for PatientList (myHomePage), 1 for EmergencyList
   int _homeContentIndex = 0;
   // -----------------------------
   late final List<Widget> _widgetOptions;
@@ -195,7 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _initializeNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('app_icon');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
       requestAlertPermission: true,
