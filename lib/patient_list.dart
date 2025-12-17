@@ -59,17 +59,14 @@ class PatientListScreenState extends State<PatientListScreen> {
         filteredPatients = patients;
       } else {
         filteredPatients = patients.where((patient) {
-          final String patientPhone =
-              patient['patientPhone']?.toString().toLowerCase() ?? '';
+          final String patientPhone = patient['patientPhone']?.toString().toLowerCase() ?? '';
 
           final Map<String, dynamic>? patientData = patient['data'] is Map
               ? patient['data'] as Map<String, dynamic>
               : null;
 
-          final String patientName =
-              patientData?['patientName']?.toString().toLowerCase() ?? '';
-          final String patientRegNo =
-              patientData?['patientRegNo']?.toString().toLowerCase() ?? '';
+          final String patientName = patientData?['patientName']?.toString().toLowerCase() ?? '';
+          final String patientRegNo = patientData?['patientRegNo']?.toString().toLowerCase() ?? '';
 
           return patientPhone.contains(query) ||
               patientName.contains(query) ||
@@ -124,10 +121,7 @@ class PatientListScreenState extends State<PatientListScreen> {
 
     if (!mounted) return; // Exit if the widget is disposed
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
   }
 
   Future<void> _loadSharedPreferencesData() async {
@@ -185,11 +179,11 @@ class PatientListScreenState extends State<PatientListScreen> {
   }
 
   Widget _buildUzlegButton(
-      BuildContext context,
-      String? roomId,
-      String xMedsoftToken,
-      double buttonFontSize,
-      ) {
+    BuildContext context,
+    String? roomId,
+    String xMedsoftToken,
+    double buttonFontSize,
+  ) {
     final tenantDomain = sharedPreferencesData['tenantDomain'] ?? '';
 
     return SizedBox(
@@ -205,17 +199,16 @@ class PatientListScreenState extends State<PatientListScreen> {
           ),
           onPressed: roomId != null
               ? () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => WebViewScreen(
-                  url:
-                  '$tenantDomain/request/AmbulanceRequest/$roomId/$xMedsoftToken',
-                  title: 'Түргэн тусламж',
-                ),
-              ),
-            );
-          }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WebViewScreen(
+                        url: '$tenantDomain/request/AmbulanceRequest/$roomId/$xMedsoftToken',
+                        title: 'Түргэн тусламж',
+                      ),
+                    ),
+                  );
+                }
               : null,
         ),
       ),
@@ -223,11 +216,11 @@ class PatientListScreenState extends State<PatientListScreen> {
   }
 
   Widget _buildBatalgaajuulahButton(
-      BuildContext context,
-      dynamic patient,
-      bool arrived,
-      double buttonFontSize,
-      ) {
+    BuildContext context,
+    dynamic patient,
+    bool arrived,
+    double buttonFontSize,
+  ) {
     final roomId = patient['roomId'];
     final phone = patient['patientPhone'];
 
@@ -244,336 +237,283 @@ class PatientListScreenState extends State<PatientListScreen> {
           ),
           onPressed: arrived
               ? () async {
-            if (roomId == null || phone == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Room ID эсвэл утасны дугаар олдсонгүй'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-              return;
-            }
-
-            final rootContext = context;
-
-            showDialog(
-              context: rootContext,
-              builder: (BuildContext dialogContext) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                  title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        "Үзлэг баталгаажуулах",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
+                  if (roomId == null || phone == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Room ID эсвэл утасны дугаар олдсонгүй'),
+                        duration: Duration(seconds: 1),
                       ),
-                      SizedBox(height: 8),
-                      Divider(thickness: 1),
-                    ],
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 8),
-                      Row(
-                        children: const [
-                          Icon(Icons.phone_iphone, color: Colors.cyan),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              "Хэрвээ дуудлага өгсөн иргэн Medsoft аппликейшн ашигладаг бол:",
+                    );
+                    return;
+                  }
+
+                  final rootContext = context;
+
+                  showDialog(
+                    context: rootContext,
+                    builder: (BuildContext dialogContext) {
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              "Үзлэг баталгаажуулах",
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          shadowColor: Colors.cyan.withOpacity(0.4),
-                          elevation: 8,
+                            SizedBox(height: 8),
+                            Divider(thickness: 1),
+                          ],
                         ),
-                        onPressed: () async {
-                          Navigator.of(dialogContext).pop();
-
-                          try {
-                            final response = await _mapDAO
-                                .requestDoneByApp(roomId);
-
-                            if (!mounted) return; // ✅ Added mounted check
-
-                            if (response.statusCode == 401 || // ✅ Added 401/403 check
-                                response.statusCode == 403) {
-                              _logOut();
-                              return;
-                            }
-
-                            if (response.success == true) {
-                              ScaffoldMessenger.of(
-                                rootContext,
-                              ).showSnackBar(
-                                const SnackBar(
-                                  backgroundColor: Colors.green,
-                                  content: Text(
-                                    'Иргэний апп руу хүсэлт илгээгдлээ',
-                                    style: TextStyle(color: Colors.white),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 8),
+                            Row(
+                              children: const [
+                                Icon(Icons.phone_iphone, color: Colors.cyan),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "Хэрвээ дуудлага өгсөн иргэн Medsoft аппликейшн ашигладаг бол:",
                                   ),
                                 ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(
-                                rootContext,
-                              ).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Амжилтгүй: ${response.statusCode}',
-                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              );
-                            }
-                          } catch (e) {
-                            debugPrint('API error: $e');
-                            if (!mounted) return; // ✅ Added mounted check
-                            ScaffoldMessenger.of(
-                              rootContext,
-                            ).showSnackBar(
-                              const SnackBar(
-                                content: Text('Алдаа гарлаа'),
+                                shadowColor: Colors.cyan.withOpacity(0.4),
+                                elevation: 8,
                               ),
-                            );
-                          }
-                        },
-                        child: const Text(
-                          "Иргэний аппликейшн руу баталгаажуулах хүсэлт илгээх",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: const [
-                          Icon(Icons.message, color: Colors.orange),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              "Хэрвээ дуудлага өгсөн иргэн Medsoft аппликейшн ашигладаггүй бол:",
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          shadowColor: Colors.orange.withOpacity(0.4),
-                          elevation: 8,
-                        ),
-                        onPressed: () async {
-                          Navigator.of(dialogContext).pop();
+                              onPressed: () async {
+                                Navigator.of(dialogContext).pop();
 
-                          try {
-                            final response = await _mapDAO
-                                .requestDoneByOTP(roomId);
+                                try {
+                                  final response = await _mapDAO.requestDoneByApp(roomId);
 
-                            if (!mounted) return;
+                                  if (!mounted) return; // ✅ Added mounted check
 
-                            if (response.statusCode == 401 || // ✅ Added 401/403 check
-                                response.statusCode == 403) {
-                              _logOut();
-                              return;
-                            }
+                                  if (response.statusCode == 401 || // ✅ Added 401/403 check
+                                      response.statusCode == 403) {
+                                    _logOut();
+                                    return;
+                                  }
 
-                            if (response.success == true) {
-                              ScaffoldMessenger.of(
-                                rootContext,
-                              ).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Иргэний утас руу OTP илгээгдлээ',
-                                  ),
-                                ),
-                              );
-
-                              final TextEditingController otpController =
-                              TextEditingController();
-
-                              showDialog(
-                                context: rootContext,
-                                barrierDismissible: false,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: const Text('OTP оруулах'),
-                                    content: TextField(
-                                      controller: otpController,
-                                      keyboardType: TextInputType.number,
-                                      maxLength: 6,
-                                      decoration: const InputDecoration(
-                                        hintText: '6 оронтой OTP',
-                                        counterText: '',
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: const Text('Буцах'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () async {
-                                          final otp = otpController.text
-                                              .trim();
-
-                                          if (otp.length == 6) {
-                                            try {
-                                              final doneResponse =
-                                              await _mapDAO.doneByOTP(
-                                                {
-                                                  'roomId': roomId,
-                                                  'otp': otp,
-                                                },
-                                              );
-
-                                              if (!mounted) return; // ✅ Added mounted check
-
-                                              if (doneResponse.statusCode == 401 || // ✅ Added 401/403 check
-                                                  doneResponse.statusCode == 403) {
-                                                _logOut();
-                                                return;
-                                              }
-
-                                              if (doneResponse.success) {
-                                                if (!mounted) return;
-                                                Navigator.of(
-                                                  context,
-                                                ).pop();
-                                                ScaffoldMessenger.of(
-                                                  rootContext,
-                                                ).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      ' Амжилттай баталгаажлаа',
-                                                    ),
-                                                  ),
-                                                );
-                                              } else {
-                                                if (!mounted) return;
-                                                ScaffoldMessenger.of(
-                                                  rootContext,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      'OTP амжилтгүй: ${doneResponse.statusCode}',
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            } catch (e) {
-                                              debugPrint(
-                                                'Finalization error: $e',
-                                              );
-                                              if (!mounted) return; // ✅ Added mounted check
-                                              ScaffoldMessenger.of(
-                                                rootContext,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Баталгаажуулах үед алдаа гарлаа',
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          } else {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'OTP 6 оронтой байх ёстой.',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        child: const Text(
-                                          'Баталгаажуулах',
+                                  if (response.success == true) {
+                                    ScaffoldMessenger.of(rootContext).showSnackBar(
+                                      const SnackBar(
+                                        backgroundColor: Colors.green,
+                                        content: Text(
+                                          'Иргэний апп руу хүсэлт илгээгдлээ',
+                                          style: TextStyle(color: Colors.white),
                                         ),
                                       ),
-                                    ],
-                                  );
-                                },
-                              );
-                            } else {
-                              debugPrint(
-                                'done_request_otp failed: ${response.statusCode} ${response.message}',
-                              );
-                              if (!mounted) return; // ✅ Added mounted check
-                              ScaffoldMessenger.of(
-                                rootContext,
-                              ).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'OTP илгээх амжилтгүй: ${response.statusCode}',
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(rootContext).showSnackBar(
+                                      SnackBar(content: Text('Амжилтгүй: ${response.statusCode}')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  debugPrint('API error: $e');
+                                  if (!mounted) return; // ✅ Added mounted check
+                                  ScaffoldMessenger.of(
+                                    rootContext,
+                                  ).showSnackBar(const SnackBar(content: Text('Алдаа гарлаа')));
+                                }
+                              },
+                              child: const Text(
+                                "Иргэний аппликейшн руу баталгаажуулах хүсэлт илгээх",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              children: const [
+                                Icon(Icons.message, color: Colors.orange),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "Хэрвээ дуудлага өгсөн иргэн Medsoft аппликейшн ашигладаггүй бол:",
                                   ),
                                 ),
-                              );
-                            }
-                          } catch (e) {
-                            debugPrint('API error: $e');
-                            if (!mounted) return; // ✅ Added mounted check
-                            ScaffoldMessenger.of(
-                              rootContext,
-                            ).showSnackBar(
-                              const SnackBar(
-                                content: Text('Алдаа гарлаа'),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                shadowColor: Colors.orange.withOpacity(0.4),
+                                elevation: 8,
                               ),
-                            );
-                          }
-                        },
-                        child: const Text(
-                          "Иргэний утас руу OTP илгээх",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                    ],
-                  ),
+                              onPressed: () async {
+                                Navigator.of(dialogContext).pop();
 
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop();
-                      },
-                      child: const Text(
-                        "Буцах",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          }
+                                try {
+                                  final response = await _mapDAO.requestDoneByOTP(roomId);
+
+                                  if (!mounted) return;
+
+                                  if (response.statusCode == 401 || // ✅ Added 401/403 check
+                                      response.statusCode == 403) {
+                                    _logOut();
+                                    return;
+                                  }
+
+                                  if (response.success == true) {
+                                    ScaffoldMessenger.of(rootContext).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Иргэний утас руу OTP илгээгдлээ'),
+                                      ),
+                                    );
+
+                                    final TextEditingController otpController =
+                                        TextEditingController();
+
+                                    showDialog(
+                                      context: rootContext,
+                                      barrierDismissible: false,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: const Text('OTP оруулах'),
+                                          content: TextField(
+                                            controller: otpController,
+                                            keyboardType: TextInputType.number,
+                                            maxLength: 6,
+                                            decoration: const InputDecoration(
+                                              hintText: '6 оронтой OTP',
+                                              counterText: '',
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: const Text('Буцах'),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () async {
+                                                final otp = otpController.text.trim();
+
+                                                if (otp.length == 6) {
+                                                  try {
+                                                    final doneResponse = await _mapDAO.doneByOTP({
+                                                      'roomId': roomId,
+                                                      'otp': otp,
+                                                    });
+
+                                                    if (!mounted) return; // ✅ Added mounted check
+
+                                                    if (doneResponse.statusCode ==
+                                                            401 || // ✅ Added 401/403 check
+                                                        doneResponse.statusCode == 403) {
+                                                      _logOut();
+                                                      return;
+                                                    }
+
+                                                    if (doneResponse.success) {
+                                                      if (!mounted) return;
+                                                      Navigator.of(context).pop();
+                                                      ScaffoldMessenger.of(
+                                                        rootContext,
+                                                      ).showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(' Амжилттай баталгаажлаа'),
+                                                        ),
+                                                      );
+                                                    } else {
+                                                      if (!mounted) return;
+                                                      ScaffoldMessenger.of(
+                                                        rootContext,
+                                                      ).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                            'OTP амжилтгүй: ${doneResponse.statusCode}',
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }
+                                                  } catch (e) {
+                                                    debugPrint('Finalization error: $e');
+                                                    if (!mounted) return; // ✅ Added mounted check
+                                                    ScaffoldMessenger.of(rootContext).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          'Баталгаажуулах үед алдаа гарлаа',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                } else {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text('OTP 6 оронтой байх ёстой.'),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              child: const Text('Баталгаажуулах'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  } else {
+                                    debugPrint(
+                                      'done_request_otp failed: ${response.statusCode} ${response.message}',
+                                    );
+                                    if (!mounted) return; // ✅ Added mounted check
+                                    ScaffoldMessenger.of(rootContext).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'OTP илгээх амжилтгүй: ${response.statusCode}',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  debugPrint('API error: $e');
+                                  if (!mounted) return; // ✅ Added mounted check
+                                  ScaffoldMessenger.of(
+                                    rootContext,
+                                  ).showSnackBar(const SnackBar(content: Text('Алдаа гарлаа')));
+                                }
+                              },
+                              child: const Text(
+                                "Иргэний утас руу OTP илгээх",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                            },
+                            child: const Text("Буцах", style: TextStyle(fontSize: 16)),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
               : null,
         ),
       ),
@@ -581,11 +521,11 @@ class PatientListScreenState extends State<PatientListScreen> {
   }
 
   Widget _buildEmButton(
-      BuildContext context,
-      String? roomId,
-      String xMedsoftToken,
-      double buttonFontSize,
-      ) {
+    BuildContext context,
+    String? roomId,
+    String xMedsoftToken,
+    double buttonFontSize,
+  ) {
     final String tenantDomain = sharedPreferencesData['tenantDomain'] ?? '';
 
     return SizedBox(
@@ -601,17 +541,17 @@ class PatientListScreenState extends State<PatientListScreen> {
           ),
           onPressed: roomId != null
               ? () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => WebViewScreen(
-                  url:
-                  '$tenantDomain/requestMedicine/AmbulanceRequest/$roomId/$xMedsoftToken',
-                  title: 'Эм хүсэлт',
-                ),
-              ),
-            );
-          }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WebViewScreen(
+                        url:
+                            '$tenantDomain/requestMedicine/AmbulanceRequest/$roomId/$xMedsoftToken',
+                        title: 'Эм хүсэлт',
+                      ),
+                    ),
+                  );
+                }
               : null,
         ),
       ),
@@ -640,11 +580,11 @@ class PatientListScreenState extends State<PatientListScreen> {
                 prefixIcon: const Icon(Icons.search, color: customTeal),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                  icon: const Icon(Icons.clear, color: customTeal),
-                  onPressed: () {
-                    _searchController.clear();
-                  },
-                )
+                        icon: const Icon(Icons.clear, color: customTeal),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
                     : null,
 
                 border: OutlineInputBorder(
@@ -662,10 +602,7 @@ class PatientListScreenState extends State<PatientListScreen> {
                   borderSide: const BorderSide(color: customTeal, width: 1.0),
                 ),
 
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 10.0,
-                  horizontal: 10.0,
-                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
               ),
               onChanged: (value) {
                 _filterPatients();
@@ -698,275 +635,245 @@ class PatientListScreenState extends State<PatientListScreen> {
               Expanded(
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : filteredPatients.isEmpty &&
-                    _searchController.text.isNotEmpty
+                    : filteredPatients.isEmpty && _searchController.text.isNotEmpty
                     ? const Center(
-                  child: Text(
-                    'Хайсан үгээр өвчтөн олдсонгүй',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                )
+                        child: Text(
+                          'Хайсан үгээр өвчтөн олдсонгүй',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      )
                     : filteredPatients.isEmpty
                     ? const Center(
-                  child: Text(
-                    'Өвчтөний жагсаалт хоосон байна.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                )
-                    : ListView.builder(
-                  padding: const EdgeInsets.only(
-                    left: 12.0,
-                    right: 12.0,
-                    bottom: 12.0,
-                  ),
-
-                  itemCount: filteredPatients.length,
-                  itemBuilder: (context, index) {
-                    final patient = filteredPatients[index];
-                    final roomId = patient['roomId'];
-                    final arrived = patient['arrived'] ?? false;
-                    final distance = patient['totalDistance'] ?? 'N/A';
-                    final duration = patient['totalDuration'] ?? 'N/A';
-                    final patientPhone = patient['patientPhone'] ?? '';
-                    final patientData = patient['data'] ?? {};
-                    final values = patientData != {}
-                        ? patientData['values']
-                        : null;
-
-                    String getValue(String key) {
-                      if (values != null &&
-                          values[key] != null &&
-                          values[key]['value'] != null) {
-                        return values[key]['value'] as String;
-                      }
-                      return '';
-                    }
-
-                    final patientName = patientData['patientName'] ?? '';
-                    final patientRegNo =
-                        patientData['patientRegNo'] ?? '';
-                    final patientGender =
-                        patientData['patientGender'] ?? '';
-
-                    final reportedCitizen = getValue('reportedCitizen');
-                    final received = getValue('received');
-                    final type = getValue('type');
-                    final time = getValue('time');
-                    final ambulanceTeam = getValue('ambulanceTeam');
-
-                    final address = _extractLine(reportedCitizen, 'Хаяг');
-                    final receivedShort = _extractReceivedShort(received);
-
-                    final isExpandedCurrent = _expandedTiles.contains(
-                      index,
-                    );
-
-                    final screenWidth = MediaQuery.of(context).size.width;
-
-                    final isNarrowScreen = screenWidth < 500;
-
-                    final isWideScreen = screenWidth >= 600;
-
-                    final mainAxisAlignment = isNarrowScreen
-                        ? MainAxisAlignment.start
-                        : MainAxisAlignment.center;
-
-                    final buttonFontSize = isWideScreen ? 16.0 : 11.5;
-
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: isTablet ? 600 : 700,
+                        child: Text(
+                          'Өвчтөний жагсаалт хоосон байна.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                        child: Card(
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 3,
-                          margin: const EdgeInsets.symmetric(
-                            vertical: 6.0,
-                          ),
-                          child: Container(
-                            child: Theme(
-                              data: Theme.of(context).copyWith(
-                                dividerColor: Colors.transparent,
-                              ),
-                              child: ExpansionTile(
-                                initiallyExpanded: isExpandedCurrent,
-                                tilePadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 1,
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(left: 12.0, right: 12.0, bottom: 12.0),
+
+                        itemCount: filteredPatients.length,
+                        itemBuilder: (context, index) {
+                          final patient = filteredPatients[index];
+                          final roomId = patient['roomId'];
+                          final arrived = patient['arrived'] ?? false;
+                          final distance = patient['totalDistance'] ?? 'N/A';
+                          final duration = patient['totalDuration'] ?? 'N/A';
+                          final patientPhone = patient['patientPhone'] ?? '';
+                          final patientData = patient['data'] ?? {};
+                          final values = patientData != {} ? patientData['values'] : null;
+
+                          String getValue(String key) {
+                            if (values != null &&
+                                values[key] != null &&
+                                values[key]['value'] != null) {
+                              return values[key]['value'] as String;
+                            }
+                            return '';
+                          }
+
+                          final patientName = patientData['patientName'] ?? '';
+                          final patientRegNo = patientData['patientRegNo'] ?? '';
+                          final patientGender = patientData['patientGender'] ?? '';
+
+                          final reportedCitizen = getValue('reportedCitizen');
+                          final received = getValue('received');
+                          final type = getValue('type');
+                          final time = getValue('time');
+                          final ambulanceTeam = getValue('ambulanceTeam');
+
+                          final address = _extractLine(reportedCitizen, 'Хаяг');
+                          final receivedShort = _extractReceivedShort(received);
+
+                          final isExpandedCurrent = _expandedTiles.contains(index);
+
+                          final screenWidth = MediaQuery.of(context).size.width;
+
+                          final isNarrowScreen = screenWidth < 500;
+
+                          final isWideScreen = screenWidth >= 600;
+
+                          final mainAxisAlignment = isNarrowScreen
+                              ? MainAxisAlignment.start
+                              : MainAxisAlignment.center;
+
+                          final buttonFontSize = isWideScreen ? 16.0 : 11.5;
+
+                          return Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: isTablet ? 600 : 700),
+                              child: Card(
+                                color: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                onExpansionChanged: (expanded) {
-                                  setState(() {
-                                    if (expanded) {
-                                      _expandedTiles.add(index);
-                                    } else {
-                                      _expandedTiles.remove(index);
-                                    }
-                                  });
-                                },
-                                title: Text(
-                                  patientPhone,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                                  children: [
-                                    if (!isExpandedCurrent &&
-                                        address.isNotEmpty)
-                                      Text(
-                                        address,
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
+                                elevation: 3,
+                                margin: const EdgeInsets.symmetric(vertical: 6.0),
+                                child: Container(
+                                  child: Theme(
+                                    data: Theme.of(
+                                      context,
+                                    ).copyWith(dividerColor: Colors.transparent),
+                                    child: ExpansionTile(
+                                      initiallyExpanded: isExpandedCurrent,
+                                      tilePadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 1,
                                       ),
-                                    if (!isExpandedCurrent &&
-                                        receivedShort.isNotEmpty)
-                                      Text(
-                                        receivedShort,
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
-                                      ),
-                                    const SizedBox(height: 8),
-                                    Padding(
-                                      padding: const EdgeInsets.all(0),
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                          mainAxisAlignment,
-                                          children: [
-                                            SizedBox(
-                                              width: isTablet ? 130 : 110,
-                                              child: _buildUzlegButton(
-                                                context,
-                                                roomId,
-                                                xMedsoftToken,
-                                                buttonFontSize,
-                                              ),
-                                            ),
-
-                                            const SizedBox(width: 0),
-
-                                            SizedBox(
-                                              width: isTablet ? 220 : 190,
-                                              child:
-                                              _buildBatalgaajuulahButton(
-                                                context,
-                                                patient,
-                                                arrived,
-                                                buttonFontSize,
-                                              ),
-                                            ),
-
-                                            const SizedBox(width: 0),
-
-                                            SizedBox(
-                                              width: isTablet ? 110 : 100,
-                                              child: _buildEmButton(
-                                                context,
-                                                roomId,
-                                                xMedsoftToken,
-                                                buttonFontSize,
-                                              ),
-                                            ),
-                                          ],
+                                      onExpansionChanged: (expanded) {
+                                        setState(() {
+                                          if (expanded) {
+                                            _expandedTiles.add(index);
+                                          } else {
+                                            _expandedTiles.remove(index);
+                                          }
+                                        });
+                                      },
+                                      title: Text(
+                                        patientPhone,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
+                                      subtitle: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (!isExpandedCurrent && address.isNotEmpty)
+                                            Text(
+                                              address,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          if (!isExpandedCurrent && receivedShort.isNotEmpty)
+                                            Text(
+                                              receivedShort,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          const SizedBox(height: 8),
+                                          Padding(
+                                            padding: const EdgeInsets.all(0),
+                                            child: SingleChildScrollView(
+                                              scrollDirection: Axis.horizontal,
+                                              child: Row(
+                                                mainAxisAlignment: mainAxisAlignment,
+                                                children: [
+                                                  SizedBox(
+                                                    width: isTablet ? 130 : 110,
+                                                    child: _buildUzlegButton(
+                                                      context,
+                                                      roomId,
+                                                      xMedsoftToken,
+                                                      buttonFontSize,
+                                                    ),
+                                                  ),
+
+                                                  const SizedBox(width: 0),
+
+                                                  SizedBox(
+                                                    width: isTablet ? 220 : 190,
+                                                    child: _buildBatalgaajuulahButton(
+                                                      context,
+                                                      patient,
+                                                      arrived,
+                                                      buttonFontSize,
+                                                    ),
+                                                  ),
+
+                                                  const SizedBox(width: 0),
+
+                                                  SizedBox(
+                                                    width: isTablet ? 110 : 100,
+                                                    child: _buildEmButton(
+                                                      context,
+                                                      roomId,
+                                                      xMedsoftToken,
+                                                      buttonFontSize,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      childrenPadding: const EdgeInsets.all(16.0),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Иргэн:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Html(
+                                          data:
+                                              'Нэр: $patientName<br>РД: $patientRegNo<br>Утас: $patientPhone<br>Хүйс: ' +
+                                              (patientGender == 'MALE' || patientGender == 'FEMALE'
+                                                  ? patientGender
+                                                  : 'Тодорхойгүй'),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'Дуудлага:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(reportedCitizen),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'Хүлээж авсан:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(received),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'Ангилал:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(type),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'Дуудлагын цаг:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(time),
+                                        const SizedBox(height: 5),
+                                        const Text(
+                                          'ТТ-ийн баг:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        _buildMultilineHTMLText(ambulanceTeam),
+                                        const SizedBox(height: 5),
+                                        if (arrived) ...[
+                                          Text("Distance: ${(distance as String)}"),
+                                          Text("Duration: ${(duration as String)}"),
+                                        ],
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                                childrenPadding: const EdgeInsets.all(
-                                  16.0,
-                                ),
-                                expandedCrossAxisAlignment:
-                                CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Иргэн:',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Html(
-                                    data:
-                                    'Нэр: $patientName<br>РД: $patientRegNo<br>Утас: $patientPhone<br>Хүйс: ' +
-                                        (patientGender == 'MALE' ||
-                                            patientGender == 'FEMALE'
-                                            ? patientGender
-                                            : 'Тодорхойгүй'),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'Дуудлага:',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  _buildMultilineHTMLText(
-                                    reportedCitizen,
-                                  ),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'Хүлээж авсан:',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  _buildMultilineHTMLText(received),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'Ангилал:',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  _buildMultilineHTMLText(type),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'Дуудлагын цаг:',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  _buildMultilineHTMLText(time),
-                                  const SizedBox(height: 5),
-                                  const Text(
-                                    'ТТ-ийн баг:',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  _buildMultilineHTMLText(ambulanceTeam),
-                                  const SizedBox(height: 5),
-                                  if (arrived) ...[
-                                    Text(
-                                      "Distance: ${(distance as String)}",
-                                    ),
-                                    Text(
-                                      "Duration: ${(duration as String)}",
-                                    ),
-                                  ],
-                                ],
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           ),

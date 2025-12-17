@@ -700,27 +700,51 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       ),
     );
   }
-
   Widget buildLoginForm() {
-    final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
-    final maxWidth = isTablet ? MediaQuery.of(context).size.width * 0.5 : double.infinity;
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+
+    // Check for "tablet" size (usually screens with shortest side >= 600 logical pixels)
+    final isTablet = mediaQuery.size.shortestSide >= 600;
+
+    const double maxToggleWidth = 500.0;
+    const double standardHorizontalPadding = 16.0;
+
+    // The safe area height available for the content (excluding status/nav bar)
+    final double safeHeight = screenHeight -
+        mediaQuery.padding.top -
+        mediaQuery.padding.bottom;
+
+    // 1. Determine if the keyboard is active
+    final bool isKeyboardVisible = mediaQuery.viewInsets.bottom > 0;
+
+    // 2. Define vertical padding for the entire scroll view
+    const double verticalPadding = 32.0; // Consistent top/bottom padding when keyboard is down
+
+    // 3. The minimum height the content needs to be to force vertical centering
+    // Only apply this minHeight when the keyboard is NOT visible.
+    final double minContentHeight = isKeyboardVisible
+        ? 0.0 // Allow content to be its natural size when scrolling (keyboard up)
+        : safeHeight - (verticalPadding * 2); // Center when keyboard is down
 
     return SingleChildScrollView(
       controller: _scrollController,
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: MediaQuery.of(context).size.shortestSide >= 600
-            ? MediaQuery.of(context).size.height * 0.10
-            : 70,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
-      ),
+      // Apply consistent vertical padding. The bottom padding will be handled by
+      // the Column's contents (using a Spacer) when keyboard is NOT visible,
+      // and by the system when the keyboard IS visible.
+      padding: const EdgeInsets.symmetric(horizontal: standardHorizontalPadding),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       child: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
+          constraints: BoxConstraints(maxWidth: isTablet ? maxToggleWidth : double.infinity,
+            // Only enforce minHeight for vertical centering when the keyboard is closed.
+            minHeight: minContentHeight.clamp(0.0, double.infinity),
+          ),
           child: Form(
             child: Column(
+              mainAxisAlignment: isKeyboardVisible
+                  ? MainAxisAlignment.start // Start from top when keyboard is visible
+                  : MainAxisAlignment.center, // Center when keyboard is closed
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Image.asset('assets/icon/doctor_logo_login.png', height: 150),
@@ -735,6 +759,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 const SizedBox(height: 20),
 
                 if (_serverNames.isNotEmpty && _selectedToggleIndex == 0)
+                // Dropdown Button implementation (retained original content)
                   Container(
                     height: 56,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -757,17 +782,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                                   _selectedRole = newValue;
                                   _errorMessage = '';
                                 });
-
                                 SharedPreferences prefs = await SharedPreferences.getInstance();
                                 await prefs.setString('X-Tenant', newValue['name'] ?? '');
-
-                                debugPrint('MY FORGET URL: ${newValue.toString()}');
                                 await prefs.setString('forgetUrl', newValue['domain'] ?? '');
                               }
                             },
                             items: _serverNames.map<DropdownMenuItem<Map<String, String>>>((
-                              Map<String, String> value,
-                            ) {
+                                Map<String, String> value,
+                                ) {
                               return DropdownMenuItem<Map<String, String>>(
                                 value: value,
                                 child: Text(value['fullName']!),
@@ -794,6 +816,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 if (_serverNames.isNotEmpty && _selectedToggleIndex == 0)
                   const SizedBox(height: 20),
 
+                // Login Username Field
                 if (_selectedToggleIndex == 0)
                   TextFormField(
                     controller: _usernameLoginController,
@@ -807,16 +830,17 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       prefixIcon: const Icon(Icons.person),
                       suffixIcon: _usernameLoginController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _usernameLoginController.clear();
-                              },
-                            )
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _usernameLoginController.clear();
+                        },
+                      )
                           : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
 
+                // Register Username Field
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _usernameController,
@@ -830,11 +854,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       prefixIcon: const Icon(Icons.person),
                       suffixIcon: _usernameController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _usernameController.clear();
-                              },
-                            )
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _usernameController.clear();
+                        },
+                      )
                           : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -842,6 +866,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 const SizedBox(height: 20),
 
+                // Login Password Field
                 if (_selectedToggleIndex == 0)
                   TextFormField(
                     controller: _passwordLoginController,
@@ -883,6 +908,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 if (_selectedToggleIndex == 0) const SizedBox(height: 20),
 
+                // Register Password Field
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _passwordController,
@@ -919,6 +945,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 if (_selectedToggleIndex == 1) const SizedBox(height: 20),
 
+                // Register Password Check Field
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _passwordCheckController,
@@ -948,13 +975,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 if (_selectedToggleIndex == 1) const SizedBox(height: 20),
 
+                // Register RegNo Field
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _regNoController,
                     focusNode: _regNoFocus,
                     textInputAction: TextInputAction.next,
                     onFieldSubmitted: (_) {
-                      FocusScope.of(context).requestFocus(_passwordFocus);
+                      FocusScope.of(context).requestFocus(_regNoFocus);
                     },
                     decoration: InputDecoration(
                       labelText: 'Регистрын дугаар',
@@ -972,13 +1000,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 if (_selectedToggleIndex == 1) const SizedBox(height: 20),
 
+                // Register Lastname Field
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _lastnameController,
                     focusNode: _lastnameFocus,
                     textInputAction: TextInputAction.next,
                     onFieldSubmitted: (_) {
-                      FocusScope.of(context).requestFocus(_passwordFocus);
+                      FocusScope.of(context).requestFocus(_firstnameFocus);
                     },
                     decoration: InputDecoration(
                       labelText: 'Овог',
@@ -996,13 +1025,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
                 if (_selectedToggleIndex == 1) const SizedBox(height: 20),
 
+                // Register Firstname Field
                 if (_selectedToggleIndex == 1)
                   TextFormField(
                     controller: _firstnameController,
                     focusNode: _firstnameFocus,
                     textInputAction: TextInputAction.next,
                     onFieldSubmitted: (_) {
-                      FocusScope.of(context).requestFocus(_passwordFocus);
+                      FocusScope.of(context).requestFocus(_firstnameFocus);
                     },
                     decoration: InputDecoration(
                       labelText: 'Нэр',
@@ -1033,8 +1063,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       onTap: () async {
                         SharedPreferences prefs = await SharedPreferences.getInstance();
                         String? baseUrl = prefs.getString('forgetUrl');
-
-                        debugPrint('MY PREFS FORGETURL: $baseUrl');
                         String? hospital = _selectedRole?['name'];
 
                         if (baseUrl != null && baseUrl.isNotEmpty && hospital != null) {
@@ -1079,20 +1107,15 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   onPressed: _isLoading
                       ? null
                       : () {
-                          // if (_selectedToggleIndex == 1) {
-                          //   if (_validateRegisterInputs()) {
-                          //     _register();
-                          //   }
-                          // } else {
-                          _login();
-                          // }
-                        },
+                    // Registration/Login logic
+                    _login(); // Using _login() as per your original file's onPressed logic
+                  },
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          _selectedToggleIndex == 0 ? 'НЭВТРЭХ' : 'БҮРТГҮҮЛЭХ',
-                          style: const TextStyle(fontSize: 15, color: Colors.white),
-                        ),
+                    _selectedToggleIndex == 0 ? 'НЭВТРЭХ' : 'БҮРТГҮҮЛЭХ',
+                    style: const TextStyle(fontSize: 15, color: Colors.white),
+                  ),
                 ),
               ],
             ),
