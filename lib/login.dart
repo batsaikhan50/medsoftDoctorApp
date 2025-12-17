@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:medsoft_doctor/api/auth_dao.dart';
-import 'package:medsoft_doctor/claim_qr.dart';
-import 'package:medsoft_doctor/main.dart';
-import 'package:medsoft_doctor/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
+import 'package:medsoft_doctor/api/auth_dao.dart';
+import 'package:medsoft_doctor/claim_qr.dart';
+import 'package:medsoft_doctor/main.dart';
+import 'package:medsoft_doctor/webview_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -700,6 +700,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       ),
     );
   }
+
   Widget buildLoginForm() {
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
@@ -711,9 +712,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     const double standardHorizontalPadding = 16.0;
 
     // The safe area height available for the content (excluding status/nav bar)
-    final double safeHeight = screenHeight -
-        mediaQuery.padding.top -
-        mediaQuery.padding.bottom;
+    final double safeHeight = screenHeight - mediaQuery.padding.top - mediaQuery.padding.bottom;
 
     // 1. Determine if the keyboard is active
     final bool isKeyboardVisible = mediaQuery.viewInsets.bottom > 0;
@@ -736,14 +735,16 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       child: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isTablet ? maxToggleWidth : double.infinity,
+          constraints: BoxConstraints(
+            maxWidth: isTablet ? maxToggleWidth : double.infinity,
             // Only enforce minHeight for vertical centering when the keyboard is closed.
             minHeight: minContentHeight.clamp(0.0, double.infinity),
           ),
           child: Form(
             child: Column(
               mainAxisAlignment: isKeyboardVisible
-                  ? MainAxisAlignment.start // Start from top when keyboard is visible
+                  ? MainAxisAlignment
+                        .start // Start from top when keyboard is visible
                   : MainAxisAlignment.center, // Center when keyboard is closed
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -759,7 +760,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 const SizedBox(height: 20),
 
                 if (_serverNames.isNotEmpty && _selectedToggleIndex == 0)
-                // Dropdown Button implementation (retained original content)
+                  // Dropdown Button implementation (retained original content)
                   Container(
                     height: 56,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -788,8 +789,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                               }
                             },
                             items: _serverNames.map<DropdownMenuItem<Map<String, String>>>((
-                                Map<String, String> value,
-                                ) {
+                              Map<String, String> value,
+                            ) {
                               return DropdownMenuItem<Map<String, String>>(
                                 value: value,
                                 child: Text(value['fullName']!),
@@ -830,11 +831,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       prefixIcon: const Icon(Icons.person),
                       suffixIcon: _usernameLoginController.text.isNotEmpty
                           ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _usernameLoginController.clear();
-                        },
-                      )
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _usernameLoginController.clear();
+                              },
+                            )
                           : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -854,11 +855,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       prefixIcon: const Icon(Icons.person),
                       suffixIcon: _usernameController.text.isNotEmpty
                           ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _usernameController.clear();
-                        },
-                      )
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _usernameController.clear();
+                              },
+                            )
                           : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -1107,15 +1108,15 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   onPressed: _isLoading
                       ? null
                       : () {
-                    // Registration/Login logic
-                    _login(); // Using _login() as per your original file's onPressed logic
-                  },
+                          // Registration/Login logic
+                          _login(); // Using _login() as per your original file's onPressed logic
+                        },
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                    _selectedToggleIndex == 0 ? 'НЭВТРЭХ' : 'БҮРТГҮҮЛЭХ',
-                    style: const TextStyle(fontSize: 15, color: Colors.white),
-                  ),
+                          _selectedToggleIndex == 0 ? 'НЭВТРЭХ' : 'БҮРТГҮҮЛЭХ',
+                          style: const TextStyle(fontSize: 15, color: Colors.white),
+                        ),
                 ),
               ],
             ),

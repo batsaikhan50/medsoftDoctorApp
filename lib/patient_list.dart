@@ -80,10 +80,10 @@ class PatientListScreenState extends State<PatientListScreen> {
     if (initialLoad && mounted) {
       setState(() => isLoading = true);
     }
+    if (!mounted) return; // Exit if the widget is disposed
 
     final response = await _mapDAO.getPatientsListAmbulance();
 
-    if (!mounted) return; // Exit if the widget is disposed
 
     if (response.statusCode == 200) {
       final json = response.data;
