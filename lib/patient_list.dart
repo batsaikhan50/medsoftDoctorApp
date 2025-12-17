@@ -35,7 +35,11 @@ class PatientListScreenState extends State<PatientListScreen> {
     _searchController.addListener(_filterPatients);
 
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
-      refreshPatients();
+      if (mounted) {
+        refreshPatients();
+      } else {
+        timer.cancel();
+      }
     });
   }
 
@@ -77,40 +81,36 @@ class PatientListScreenState extends State<PatientListScreen> {
   }
 
   Future<void> fetchPatients({bool initialLoad = false}) async {
+
+    if (!mounted) return;
     if (initialLoad && mounted) {
       setState(() => isLoading = true);
-    }
-    if (!mounted) return; // Exit if the widget is disposed
+    } // Exit if the widget is disposed
+    try {
+      final response = await _mapDAO.getPatientsListAmbulance();
 
-    final response = await _mapDAO.getPatientsListAmbulance();
+      // Check mounted again after the asynchronous network call
+      if (!mounted) return;
 
-
-    if (response.statusCode == 200) {
-      final json = response.data;
-
-      if (response.success == true) {
-        // Check mounted before calling setState
-        if (mounted) {
-          setState(() {
-            patients = json as List;
-            _filterPatients();
-            isLoading = false;
-          });
-        }
-      }
-    } else {
-      if (initialLoad) {
-        // Check mounted before calling setState
-        if (mounted) {
+      if (response.success) {
+        final json = response.data!;
+        setState(() {
+          patients = json;
+          isLoading = false;
+        });
+      } else {
+        if (initialLoad) {
           setState(() => isLoading = false);
         }
-      }
-
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        // Check mounted before calling _logOut, which uses Navigator
-        if (mounted) {
+        if (response.statusCode == 401 || response.statusCode == 403) {
           _logOut();
         }
+      }
+    } catch (e) {
+      // Handle the SocketException to prevent the app from crashing
+      debugPrint("Network error: $e");
+      if (initialLoad && mounted) {
+        setState(() => isLoading = false);
       }
     }
   }
