@@ -157,7 +157,7 @@ class NewsFeedWidget extends StatelessWidget {
                   // CONTENT (Simplified due to flutter_html assumption)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Html(data: '${item["mergedValues"] ?? "No content"}'),
+                    child: Html(data: '${item["mergedValues"] ?? "Агуулга байхгүй"}'),
                   ),
 
                   const SizedBox(height: 20),

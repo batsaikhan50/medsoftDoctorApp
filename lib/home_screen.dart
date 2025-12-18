@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final response = snapshot.data!;
           debugPrint('News response: ${response.message}');
           if (response.data == null || response.data!.isEmpty) {
-            return const Center(child: Text("No news found"));
+            return const Center(child: Text("Мэдээ олдсонгүй"));
           }
 
           final news = response.data!;

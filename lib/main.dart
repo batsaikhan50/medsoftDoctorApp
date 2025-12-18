@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Medsoft Doctor',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
       home: FutureBuilder<Widget>(
@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           } else if (snapshot.hasError) {
-            return const Scaffold(body: Center(child: Text("Error checking login status")));
+            return const Scaffold(body: Center(child: Text("Нэвтрэх төлөвийг шалгахад алдаа гарлаа")));
           } else if (snapshot.hasData) {
             return snapshot.data!;
           } else {
@@ -111,7 +111,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     _widgetOptions = <Widget>[
       // Index 0: Not used (as per existing doctor app's _selectedIndex starting at 1)
-      const Center(child: Text("Tab 0 is not used")),
+      const Center(child: Text("Tab 0 ашиглагдаагүй")),
       // Index 1: Nested Content (PatientList/EmergencyList)
       _getSecondTabContent(),
       // Index 2: QR Scanner
