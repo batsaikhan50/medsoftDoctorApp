@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:medsoft_doctor/api/auth_dao.dart';
 import 'package:medsoft_doctor/claim_qr.dart';
 import 'package:medsoft_doctor/constants.dart';
+import 'package:medsoft_doctor/doctor_call_screen.dart';
 import 'package:medsoft_doctor/emergency_list.dart';
 import 'package:medsoft_doctor/guide.dart';
 import 'package:medsoft_doctor/home_screen.dart';
@@ -537,6 +538,18 @@ class _MyHomePageState extends State<MyHomePage> {
     List<Widget> appBarActions = [];
     final isSecondTab = _selectedIndex == 1;
     final isPatientListScreen = isSecondTab && _homeContentIndex == 0;
+
+    appBarActions.add(
+      IconButton(
+        icon: const Icon(Icons.videocam),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DoctorCallScreen()),
+          );
+        },
+      ),
+    );
 
     // --- Simplified AppBar Logic ---
     // if (isHomeTab) {
