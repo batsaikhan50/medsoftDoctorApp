@@ -19,6 +19,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   bool _micEnabled = true;
   bool _camEnabled = true;
   bool _frontCamera = true;
+  bool _isConnecting = false; // Add this line
 
   @override
   void dispose() {
@@ -56,6 +57,9 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   }
 
   Future<void> _connect() async {
+    setState(() {
+      _isConnecting = true; // Start loading
+    });
     try {
       await _requestPermissions();
       final token = await _getToken();
@@ -84,6 +88,12 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
       // Show a snackbar so you know why it failed on the phone
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connect Error: $e")));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isConnecting = false; // Stop loading regardless of outcome
+        });
       }
     }
   }
@@ -175,10 +185,19 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text('Consultation')),
+      appBar: AppBar(title: const Text('Doctor video callz')),
       body: _room == null
           ? Center(
-              child: ElevatedButton(onPressed: _connect, child: const Text('Join Call')),
+              child: _isConnecting
+                  ? const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(color: Colors.white),
+                        SizedBox(height: 16),
+                        Text("Connecting to Room...", style: TextStyle(color: Colors.white)),
+                      ],
+                    )
+                  : ElevatedButton(onPressed: _connect, child: const Text('Join Call')),
             )
           : Column(
               children: [
