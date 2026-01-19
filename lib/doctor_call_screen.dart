@@ -56,11 +56,22 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     try {
       await _requestPermissions();
       final token = await _getToken();
-      final room = Room();
-      _listener = room.events.listen((event) => setState(() {}));
+
+      // 1. Set room options for smoother reconnection
+      final room = Room(roomOptions: const RoomOptions(adaptiveStream: true, dynacast: true));
+
+      // 2. Comprehensive Listener
+      // This ensures that when a remote user mutes/unmutes, the UI updates
+      _listener = room.events.listen((event) {
+        if (mounted) setState(() {});
+      });
+
       await room.connect(Constants.livekitUrl, token);
-      await room.localParticipant?.setCameraEnabled(true);
-      await room.localParticipant?.setMicrophoneEnabled(true);
+
+      // 3. Ensure we use the current toggle states upon joining
+      await room.localParticipant?.setCameraEnabled(_camEnabled);
+      await room.localParticipant?.setMicrophoneEnabled(_micEnabled);
+
       setState(() => _room = room);
     } catch (e) {
       if (mounted) {
