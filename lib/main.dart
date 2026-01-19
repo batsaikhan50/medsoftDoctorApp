@@ -37,7 +37,9 @@ class MyApp extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           } else if (snapshot.hasError) {
-            return const Scaffold(body: Center(child: Text("Нэвтрэх төлөвийг шалгахад алдаа гарлаа")));
+            return const Scaffold(
+              body: Center(child: Text("Нэвтрэх төлөвийг шалгахад алдаа гарлаа")),
+            );
           } else if (snapshot.hasData) {
             return snapshot.data!;
           } else {
