@@ -347,6 +347,26 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
             },
           ),
           _buildActionButton(
+            icon: Icons.flip_camera_ios,
+            color: Colors.white24,
+            onPressed: () async {
+              final track = _room?.localParticipant?.videoTrackPublications.firstOrNull?.track;
+              if (track is LocalVideoTrack) {
+                // Access the facing mode from the map correctly using ['facingMode']
+                final settings = track.mediaStreamTrack.getSettings();
+                final isFront = settings['facingMode'] == 'user';
+
+                await track.restartTrack(
+                  CameraCaptureOptions(
+                    // Use the class constructor directly
+                    cameraPosition: isFront ? CameraPosition.back : CameraPosition.front,
+                  ),
+                );
+                setState(() {}); // Refresh UI
+              }
+            },
+          ),
+          _buildActionButton(
             icon: _isScreenShared ? Icons.stop_screen_share : Icons.screen_share,
             color: _isScreenShared ? Colors.green : Colors.white24,
             onPressed: () async {
