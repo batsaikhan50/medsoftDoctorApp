@@ -81,7 +81,6 @@ class PatientListScreenState extends State<PatientListScreen> {
   }
 
   Future<void> fetchPatients({bool initialLoad = false}) async {
-
     if (!mounted) return;
     if (initialLoad && mounted) {
       setState(() => isLoading = true);
@@ -101,9 +100,6 @@ class PatientListScreenState extends State<PatientListScreen> {
       } else {
         if (initialLoad) {
           setState(() => isLoading = false);
-        }
-        if (response.statusCode == 401 || response.statusCode == 403) {
-          _logOut();
         }
       }
     } catch (e) {

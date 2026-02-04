@@ -22,6 +22,8 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   bool _camEnabled = true;
   bool _isScreenShared = false;
   bool _isConnecting = false;
+  bool _isRecording = false;
+  bool _isProcessing = false;
 
   // --- UI Test Variables ---
   bool uiTest = false; // Toggle to true to see layouts without connecting
@@ -75,9 +77,25 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
       final room = Room();
 
       // Listener ensures UI updates when remote tracks (like screen shares) are added
-      _listener = room.events.listen((event) => setState(() {}));
+      // Listener ensures UI updates when remote tracks (like screen shares) are added
+      _listener = room.events.listen((event) {
+        if (event is RoomRecordingStatusChanged) {
+          setState(() => _isRecording = event.activeRecording);
+        } else if (event is DataReceivedEvent) {
+          // Listen for manual sync messages from Web or other Apps
+          final message = utf8.decode(event.data);
+          if (message == 'rec_on') setState(() => _isRecording = true);
+          if (message == 'rec_off') setState(() => _isRecording = false);
+        } else {
+          setState(() {});
+        }
+      });
 
       await room.connect(Constants.livekitUrl, token);
+      setState(() {
+        _isRecording = room.isRecording;
+        _room = room;
+      });
       await room.localParticipant?.setCameraEnabled(true);
       await room.localParticipant?.setMicrophoneEnabled(true);
       setState(() => _room = room);
@@ -87,6 +105,31 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
       }
     } finally {
       if (mounted) setState(() => _isConnecting = false);
+    }
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+
+    final bool starting = !_isRecording;
+    final endpoint = starting ? 'start-recording' : 'stop-recording';
+    final url = Uri.parse('${Constants.recordingUrl}/$endpoint?room=testroom');
+
+    try {
+      final response = await http.post(url);
+      if (response.statusCode == 200) {
+        // 1. Update own UI immediately
+        setState(() => _isRecording = starting);
+
+        // 2. BROADCAST to everyone else (Web/App)
+        final data = utf8.encode(starting ? 'rec_on' : 'rec_off');
+        await _room?.localParticipant?.publishData(data);
+      }
+    } catch (e) {
+      debugPrint("Recording Toggle Error: $e");
+    } finally {
+      setState(() => _isProcessing = false);
     }
   }
 
@@ -366,6 +409,13 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
               }
             },
           ),
+
+          _buildActionButton(
+            icon: _isRecording ? Icons.stop_circle : Icons.fiber_manual_record,
+            color: _isRecording ? Colors.red : Colors.white24,
+            onPressed: _toggleRecording,
+          ),
+
           _buildActionButton(
             icon: _isScreenShared ? Icons.stop_screen_share : Icons.screen_share,
             color: _isScreenShared ? Colors.green : Colors.white24,

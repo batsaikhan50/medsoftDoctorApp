@@ -299,7 +299,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // --- Custom Bottom Navigation Bar with Nested Menu ---
   Widget _buildCustomBottomNavBar() {
     const selectedColor = Color(0xFF00CCCC);
     const unselectedColor = Colors.grey;
@@ -307,8 +306,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final nestedTabDetails = _getNestedTabDetails();
     final nestedTabIcon = nestedTabDetails['icon'] as IconData;
     final nestedTabCaption = nestedTabDetails['title'] as String;
+
     void showNestedMenu(BuildContext context) {
-      // Need to wait until the current frame finishes rendering before getting RenderBox
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final RenderBox? renderBox = _inboxKey.currentContext?.findRenderObject() as RenderBox?;
         if (renderBox == null) return;
@@ -316,13 +315,11 @@ class _MyHomePageState extends State<MyHomePage> {
         final size = renderBox.size;
         final position = renderBox.localToGlobal(Offset.zero);
 
-        // Calculate the horizontal center of the item and estimate the menu width
         const menuWidth = 150.0;
         final itemCenter = position.dx + size.width / 2;
 
         showMenu<int>(
           context: context,
-          // Position the menu.
           position: RelativeRect.fromLTRB(
             itemCenter - (menuWidth / 2),
             position.dy - 120,
@@ -356,10 +353,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (result != null) {
             setState(() {
               _homeContentIndex = result;
-              // **This is the critical line added for the IndexedStack**
               _widgetOptions[1] = _getSecondTabContent();
-              // --------------------------------------------------------
-              // Ensure we are on the Nested tab (index 1) when content changes
               if (_selectedIndex != 1) {
                 _selectedIndex = 1;
               }
@@ -369,163 +363,107 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
-    // Define the screen width for 3 equal-sized navigation items
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return SafeArea(
       top: false,
       child: Container(
-        color: Colors.white,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFEEEEEE), width: 1)),
+        ),
+        height: 65, // Slightly increased height for better vertical spacing
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              color: Colors.white,
-              height: 60,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // --- 1. HOME SCREEN (INDEX 0) ---
-                  // SizedBox(
-                  //   width: screenWidth / 3,
-                  //   child: Material(
-                  //     color: Colors.white,
-                  //     child: InkWell(
-                  //       onTap: () => _onItemTapped(0),
-                  //       child: Center(
-                  //         child: Column(
-                  //           mainAxisSize: MainAxisSize.min,
-                  //           children: [
-                  //             Icon(
-                  //               Icons.home_outlined, // Icon for the new screen
-                  //               color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                  //             ),
-                  //             Text(
-                  //               'Нүүр хуудас',
-                  //               style: TextStyle(
-                  //                 color: _selectedIndex == 0 ? selectedColor : unselectedColor,
-                  //                 fontSize: 12,
-                  //               ),
-                  //             ),
-                  //           ],
-                  //         ),
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
-
-                  // --- 1. NESTED MENU (INDEX 0) ---
-                  SizedBox(
-                    width: screenWidth / 3,
-                    child: Material(
-                      color: Colors.white,
-                      child: InkWell(
-                        key: _inboxKey, // Anchor for the popup
-                        onTap: () {
-                          if (_selectedIndex == 1) {
-                            showNestedMenu(context);
-                          }
-                          // Switch to this tab (index 1) first
-                          if (_selectedIndex != 1) {
-                            setState(() => _selectedIndex = 1);
-                          }
-                        },
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    nestedTabIcon,
-                                    color: _selectedIndex == 1 ? selectedColor : unselectedColor,
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Icon(
-                                    Icons.unfold_more,
-                                    color: _selectedIndex == 1 ? selectedColor : unselectedColor,
-                                    size: 16,
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                nestedTabCaption,
-                                style: TextStyle(
-                                  color: _selectedIndex == 1 ? selectedColor : unselectedColor,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+            // --- 1. NESTED MENU (INDEX 1) ---
+            // Replaced SizedBox with Expanded to prevent overflow
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  key: _inboxKey,
+                  onTap: () {
+                    if (_selectedIndex == 1) {
+                      showNestedMenu(context);
+                    }
+                    if (_selectedIndex != 1) {
+                      setState(() => _selectedIndex = 1);
+                    }
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            nestedTabIcon,
+                            color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                            size: 24,
                           ),
+                          Icon(
+                            Icons.unfold_more,
+                            color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                            size: 14,
+                          ),
+                        ],
+                      ),
+                      Text(
+                        nestedTabCaption,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _selectedIndex == 1 ? selectedColor : unselectedColor,
+                          fontSize: 11,
                         ),
                       ),
-                    ),
+                    ],
                   ),
+                ),
+              ),
+            ),
 
-                  // --- 2. QR Screen (INDEX 1) ---
-                  SizedBox(
-                    width: screenWidth / 3,
-                    child: Material(
-                      color: Colors.white,
-                      child: InkWell(
-                        onTap: () => _onItemTapped(2),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.qr_code_scanner,
-                                // Color should never be selected color since the index is never 2
-                                // It should be unselectedColor, as it's a floating action.
-                                color: unselectedColor, // *** MODIFIED ***
-                              ),
-                              Text(
-                                'QR',
-                                style: TextStyle(
-                                  // Color should never be selected color since the index is never 2
-                                  color: unselectedColor, // *** MODIFIED ***
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
+            // --- 2. QR Screen (Navigates to separate screen) ---
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _onItemTapped(2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.qr_code_scanner, color: unselectedColor, size: 24),
+                      const Text('QR', style: TextStyle(color: unselectedColor, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // --- 3. PROFILE (INDEX 3) ---
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _onItemTapped(3),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.person,
+                        color: _selectedIndex == 3 ? selectedColor : unselectedColor,
+                        size: 24,
+                      ),
+                      Text(
+                        'Профайл',
+                        style: TextStyle(
+                          color: _selectedIndex == 3 ? selectedColor : unselectedColor,
+                          fontSize: 11,
                         ),
                       ),
-                    ),
+                    ],
                   ),
-
-                  // --- 3. PROFILE (INDEX 2) ---
-                  SizedBox(
-                    width: screenWidth / 3,
-                    child: Material(
-                      color: Colors.white,
-                      child: InkWell(
-                        onTap: () => _onItemTapped(3),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.person,
-                                color: _selectedIndex == 3 ? selectedColor : unselectedColor,
-                              ),
-                              Text(
-                                'Профайл',
-                                style: TextStyle(
-                                  color: _selectedIndex == 3 ? selectedColor : unselectedColor,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
