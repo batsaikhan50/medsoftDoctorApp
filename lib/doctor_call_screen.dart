@@ -33,11 +33,28 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   Participant? _focusedParticipant;
 
   @override
+  void initState() {
+    super.initState();
+    _checkActiveSession();
+  }
+
+  Future<void> _checkActiveSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedToken = prefs.getString('active_call_token');
+
+    // If we have a saved token, try to reconnect automatically
+    if (savedToken != null && _room == null) {
+      debugPrint("Found active session, reconnecting...");
+      _connect(existingToken: savedToken);
+    }
+  }
+
+  @override
   void dispose() {
     try {
       _listener();
     } catch (_) {}
-    _room?.disconnect();
+    // _room?.disconnect();
 
     // Reset orientations to default when leaving the call
     SystemChrome.setPreferredOrientations([
@@ -69,37 +86,42 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     }
   }
 
-  Future<void> _connect() async {
+  Future<void> _connect({String? existingToken}) async {
     setState(() => _isConnecting = true);
     try {
       await _requestPermissions();
-      final token = await _getToken();
+
+      // Use the provided token or fetch a new one
+      final token = existingToken ?? await _getToken();
       final room = Room();
 
-      // Listener ensures UI updates when remote tracks (like screen shares) are added
-      // Listener ensures UI updates when remote tracks (like screen shares) are added
       _listener = room.events.listen((event) {
         if (event is RoomRecordingStatusChanged) {
           setState(() => _isRecording = event.activeRecording);
-        } else if (event is DataReceivedEvent) {
-          // Listen for manual sync messages from Web or other Apps
-          final message = utf8.decode(event.data);
-          if (message == 'rec_on') setState(() => _isRecording = true);
-          if (message == 'rec_off') setState(() => _isRecording = false);
         } else {
           setState(() {});
         }
       });
 
       await room.connect(Constants.livekitUrl, token);
+
+      // --- SAVE TO SHARED PREFERENCES ---
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('active_call_token', token);
+      // ----------------------------------
+
       setState(() {
         _isRecording = room.isRecording;
         _room = room;
       });
-      await room.localParticipant?.setCameraEnabled(true);
-      await room.localParticipant?.setMicrophoneEnabled(true);
-      setState(() => _room = room);
+
+      await room.localParticipant?.setCameraEnabled(_camEnabled);
+      await room.localParticipant?.setMicrophoneEnabled(_micEnabled);
     } catch (e) {
+      // If connection fails, clear the stale token
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('active_call_token');
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connect Error: $e")));
       }
@@ -421,13 +443,43 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
             color: _isScreenShared ? Colors.green : Colors.white24,
             onPressed: () async {
               try {
-                _isScreenShared = !_isScreenShared;
-                await _room?.localParticipant?.setScreenShareEnabled(_isScreenShared);
-                setState(() {});
+                final bool willStartSharing = !_isScreenShared;
+
+                if (willStartSharing) {
+                  // --- STARTING SCREEN SHARE ---
+                  // 1. Kill the camera first to prevent hardware resource conflicts
+                  await _room?.localParticipant?.setCameraEnabled(false);
+
+                  // 2. Short delay for iOS to release the camera hardware lock
+                  await Future.delayed(const Duration(milliseconds: 250));
+
+                  // 3. Start Screen Share
+                  await _room?.localParticipant?.setScreenShareEnabled(true);
+
+                  setState(() {
+                    _isScreenShared = true;
+                    _camEnabled = false; // Sync UI state
+                  });
+                } else {
+                  // --- STOPPING SCREEN SHARE ---
+                  // 1. Stop the screen share (this should trigger the iOS red bar to vanish)
+                  await _room?.localParticipant?.setScreenShareEnabled(false);
+
+                  // 2. Small delay to ensure the OS has terminated the broadcast extension
+                  await Future.delayed(const Duration(milliseconds: 250));
+
+                  // 3. Automatically re-enable the camera as requested
+                  await _room?.localParticipant?.setCameraEnabled(true);
+
+                  setState(() {
+                    _isScreenShared = false;
+                    _camEnabled = true; // Sync UI state
+                  });
+                }
               } catch (e) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text("Screen Share Error: $e")));
+                debugPrint("Screen share toggle error: $e");
+                // If it fails, try to force-reset the state
+                setState(() => _isScreenShared = false);
               }
             },
           ),
@@ -436,6 +488,8 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
             color: Colors.red,
             onPressed: () async {
               await _room?.disconnect();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('active_call_token');
               setState(() => _room = null);
             },
           ),

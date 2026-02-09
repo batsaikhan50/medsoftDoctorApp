@@ -59,7 +59,7 @@
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
 		<key>NSCameraUsageDescription</key>
-		<string>This app uses your camera to scan QR codes.</string>
+		<string>This app uses your camera to scan QR codes and video consultations.</string>
 		<key>NSMicrophoneUsageDescription</key>
         <string>Medsoft Doctor needs microphone access for audio during consultations.</string>
 		<key>UIBackgroundModes</key>
@@ -67,6 +67,15 @@
             <string>audio</string>
             <string>voip</string>
         </array>
-
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>This app may save screenshots for consultations.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>This app may access your photos for consultations.</string>
+		<key>NSScreenCaptureUsageDescription</key>
+		<string>Medsoft Doctor requires screen capture for sharing during consultations.</string>
+		<key>RTCAppGroupIdentifier</key>
+		<string>group.com.medsoftDoctor</string>
+		<key>RTCScreenSharingExtension</key>
+		<string>com.batsaikhan.medsoftDoctor.LiveKitScreenShare</string>
 	</dict>
 </plist>
