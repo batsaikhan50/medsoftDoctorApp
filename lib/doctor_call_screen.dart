@@ -98,6 +98,16 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
       _listener = room.events.listen((event) {
         if (event is RoomRecordingStatusChanged) {
           setState(() => _isRecording = event.activeRecording);
+        }
+
+        // SYNC: When the iOS system kills the broadcast, this event fires
+        if (event is LocalTrackUnpublishedEvent) {
+          if (event.publication.isScreenShare) {
+            setState(() {
+              _isScreenShared = false;
+              _camEnabled = true; // Optionally resume camera
+            });
+          }
         } else {
           setState(() {});
         }
@@ -441,44 +451,47 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
           _buildActionButton(
             icon: _isScreenShared ? Icons.stop_screen_share : Icons.screen_share,
             color: _isScreenShared ? Colors.green : Colors.white24,
+            // Inside doctor_call_screen.dart -> _buildActionButton for Screen Share
+            // Inside doctor_call_screen.dart -> _buildControlBar
             onPressed: () async {
               try {
                 final bool willStartSharing = !_isScreenShared;
 
                 if (willStartSharing) {
-                  // --- STARTING SCREEN SHARE ---
-                  // 1. Kill the camera first to prevent hardware resource conflicts
                   await _room?.localParticipant?.setCameraEnabled(false);
-
-                  // 2. Short delay for iOS to release the camera hardware lock
                   await Future.delayed(const Duration(milliseconds: 250));
-
-                  // 3. Start Screen Share
                   await _room?.localParticipant?.setScreenShareEnabled(true);
 
                   setState(() {
                     _isScreenShared = true;
-                    _camEnabled = false; // Sync UI state
+                    _camEnabled = false;
                   });
                 } else {
-                  // --- STOPPING SCREEN SHARE ---
-                  // 1. Stop the screen share (this should trigger the iOS red bar to vanish)
-                  await _room?.localParticipant?.setScreenShareEnabled(false);
+                  final participant = _room?.localParticipant;
 
-                  // 2. Small delay to ensure the OS has terminated the broadcast extension
+                  // 1. Find the screen share publication
+                  final screenPub = participant?.videoTrackPublications.firstWhereOrNull(
+                    (p) => p.isScreenShare,
+                  );
+
+                  // 2. Explicitly stop the track to signal iOS to remove the red bar
+                  if (screenPub != null && screenPub.track != null) {
+                    await screenPub.track!.stop();
+                  }
+
+                  // 3. Disable the screen share state in LiveKit
+                  await participant?.setScreenShareEnabled(false);
+
                   await Future.delayed(const Duration(milliseconds: 250));
-
-                  // 3. Automatically re-enable the camera as requested
-                  await _room?.localParticipant?.setCameraEnabled(true);
+                  await participant?.setCameraEnabled(true);
 
                   setState(() {
                     _isScreenShared = false;
-                    _camEnabled = true; // Sync UI state
+                    _camEnabled = true;
                   });
                 }
               } catch (e) {
-                debugPrint("Screen share toggle error: $e");
-                // If it fails, try to force-reset the state
+                debugPrint("Screen share error: $e");
                 setState(() => _isScreenShared = false);
               }
             },
