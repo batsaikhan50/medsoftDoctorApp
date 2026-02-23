@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:medsoft_doctor/api/auth_dao.dart';
 import 'package:medsoft_doctor/claim_qr.dart';
 import 'package:medsoft_doctor/constants.dart';
+import 'package:medsoft_doctor/call_manager.dart';
 import 'package:medsoft_doctor/doctor_call_screen.dart';
 import 'package:medsoft_doctor/emergency_list.dart';
 import 'package:medsoft_doctor/guide.dart';
@@ -19,6 +20,8 @@ import 'package:uni_links/uni_links.dart';
 import 'login.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  CallManager.instance.init();
   runApp(const MyApp());
 }
 
@@ -28,9 +31,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: CallManager.navigatorKey,
       title: 'Medsoft Doctor',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
+      routes: {'/call': (context) => const DoctorCallScreen()},
       home: FutureBuilder<Widget>(
         future: _getInitialScreen(),
         builder: (context, snapshot) {
@@ -483,10 +488,7 @@ class _MyHomePageState extends State<MyHomePage> {
       IconButton(
         icon: const Icon(Icons.videocam),
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const DoctorCallScreen()),
-          );
+          Navigator.pushNamed(context, '/call');
         },
       ),
     );

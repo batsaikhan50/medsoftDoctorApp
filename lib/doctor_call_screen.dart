@@ -1,12 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:livekit_client/livekit_client.dart';
-import 'package:medsoft_doctor/constants.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:collection/collection.dart'; // REQUIRED for firstWhereOrNull
+import 'package:medsoft_doctor/call_manager.dart';
+import 'package:collection/collection.dart';
 
 class DoctorCallScreen extends StatefulWidget {
   const DoctorCallScreen({super.key});
@@ -16,45 +12,33 @@ class DoctorCallScreen extends StatefulWidget {
 }
 
 class _DoctorCallScreenState extends State<DoctorCallScreen> {
-  Room? _room;
-  late CancelListenFunc _listener;
-  bool _micEnabled = true;
-  bool _camEnabled = true;
-  bool _isScreenShared = false;
-  bool _isConnecting = false;
-  bool _isRecording = false;
-  bool _isProcessing = false;
+  final _cm = CallManager.instance;
 
   // --- UI Test Variables ---
-  bool uiTest = false; // Toggle to true to see layouts without connecting
-  int roomSize = 3; // Number of mock users to show in test mode
-
-  // Track which participant is currently "zoomed"
-  Participant? _focusedParticipant;
+  bool uiTest = false;
+  int roomSize = 3;
 
   @override
   void initState() {
     super.initState();
-    _checkActiveSession();
-  }
-
-  Future<void> _checkActiveSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedToken = prefs.getString('active_call_token');
-
-    // If we have a saved token, try to reconnect automatically
-    if (savedToken != null && _room == null) {
-      debugPrint("Found active session, reconnecting...");
-      _connect(existingToken: savedToken);
+    _cm.setOnCallScreen(true);
+    _cm.addListener(_onCallChanged);
+    if (!_cm.isConnected) {
+      _cm.checkActiveSession();
     }
   }
 
   @override
   void dispose() {
-    try {
-      _listener();
-    } catch (_) {}
-    // _room?.disconnect();
+    _cm.removeListener(_onCallChanged);
+    _cm.setOnCallScreen(false);
+
+    // Show PiP if still connected
+    if (_cm.isConnected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _cm.showPip();
+      });
+    }
 
     // Reset orientations to default when leaving the call
     SystemChrome.setPreferredOrientations([
@@ -65,119 +49,21 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     super.dispose();
   }
 
-  Future<void> _requestPermissions() async {
-    await [Permission.camera, Permission.microphone].request();
-  }
-
-  Future<String> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final username = prefs.getString('Username');
-    if (username == null || username.isEmpty) {
-      throw Exception('Username not found in SharedPreferences');
-    }
-    final response = await http.get(
-      Uri.parse('${Constants.liveKitTokenUrl}/token?identity=$username&room=testroom'),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['token'];
-    } else {
-      throw Exception('Failed to fetch token');
-    }
-  }
-
-  Future<void> _connect({String? existingToken}) async {
-    setState(() => _isConnecting = true);
-    try {
-      await _requestPermissions();
-
-      // Use the provided token or fetch a new one
-      final token = existingToken ?? await _getToken();
-      final room = Room();
-
-      _listener = room.events.listen((event) {
-        if (event is RoomRecordingStatusChanged) {
-          setState(() => _isRecording = event.activeRecording);
-        }
-
-        // SYNC: When the iOS system kills the broadcast, this event fires
-        if (event is LocalTrackUnpublishedEvent) {
-          if (event.publication.isScreenShare) {
-            setState(() {
-              _isScreenShared = false;
-              _camEnabled = true; // Optionally resume camera
-            });
-          }
-        } else {
-          setState(() {});
-        }
-      });
-
-      await room.connect(Constants.livekitUrl, token);
-
-      // --- SAVE TO SHARED PREFERENCES ---
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('active_call_token', token);
-      // ----------------------------------
-
-      setState(() {
-        _isRecording = room.isRecording;
-        _room = room;
-      });
-
-      await room.localParticipant?.setCameraEnabled(_camEnabled);
-      await room.localParticipant?.setMicrophoneEnabled(_micEnabled);
-    } catch (e) {
-      // If connection fails, clear the stale token
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('active_call_token');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connect Error: $e")));
-      }
-    } finally {
-      if (mounted) setState(() => _isConnecting = false);
-    }
-  }
-
-  Future<void> _toggleRecording() async {
-    if (_isProcessing) return;
-    setState(() => _isProcessing = true);
-
-    final bool starting = !_isRecording;
-    final endpoint = starting ? 'start-recording' : 'stop-recording';
-    final url = Uri.parse('${Constants.recordingUrl}/$endpoint?room=testroom');
-
-    try {
-      final response = await http.post(url);
-      if (response.statusCode == 200) {
-        // 1. Update own UI immediately
-        setState(() => _isRecording = starting);
-
-        // 2. BROADCAST to everyone else (Web/App)
-        final data = utf8.encode(starting ? 'rec_on' : 'rec_off');
-        await _room?.localParticipant?.publishData(data);
-      }
-    } catch (e) {
-      debugPrint("Recording Toggle Error: $e");
-    } finally {
-      setState(() => _isProcessing = false);
-    }
+  void _onCallChanged() {
+    if (mounted) setState(() {});
   }
 
   Widget _renderParticipantTile(Participant participant, {bool isLocal = false}) {
-    // Priority: 1. Screen Share, 2. Camera
     var trackPub = participant.videoTrackPublications.firstWhereOrNull((e) => e.isScreenShare);
     trackPub ??= participant.videoTrackPublications.firstOrNull;
 
-    final isMuted = isLocal ? !_camEnabled : (trackPub?.muted ?? true);
+    final isMuted = isLocal ? !_cm.camEnabled : (trackPub?.muted ?? true);
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          // Toggle zoom: if already focused, return to grid; otherwise, zoom in
-          _focusedParticipant = (_focusedParticipant == participant) ? null : participant;
-        });
+        _cm.setFocusedParticipant(
+          _cm.focusedParticipant == participant ? null : participant,
+        );
       },
       child: Container(
         margin: const EdgeInsets.all(2),
@@ -233,10 +119,9 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     );
   }
 
-  // Helper for UI testing without real participants
   Widget _buildDummyTile(int index) {
     return GestureDetector(
-      onTap: () => setState(() => uiTest = false), // Tap mock to exit test mode
+      onTap: () => setState(() => uiTest = false),
       child: Container(
         margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
@@ -259,7 +144,6 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Device detection for rotation locking
     final double shortestSide = MediaQuery.of(context).size.shortestSide;
     final bool isTablet = shortestSide >= 600;
 
@@ -273,11 +157,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
       ]);
     }
 
-    // 2. Participant Logic
-    List<Participant> allParticipants = [];
-    if (_room != null) {
-      allParticipants = [_room!.localParticipant!, ..._room!.remoteParticipants.values];
-    }
+    final allParticipants = _cm.allParticipants;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -287,13 +167,13 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 18),
       ),
-      body: (_room == null && !uiTest)
+      body: (_cm.room == null && !uiTest)
           ? _buildInitialUI()
           : SafeArea(
               child: Column(
                 children: [
                   Expanded(
-                    child: _focusedParticipant != null
+                    child: _cm.focusedParticipant != null
                         ? _buildZoomedView(allParticipants)
                         : _buildDefaultLayout(allParticipants),
                   ),
@@ -306,9 +186,22 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
 
   Widget _buildInitialUI() {
     return Center(
-      child: _isConnecting
+      child: _cm.isConnecting
           ? const CircularProgressIndicator(color: Colors.white)
-          : ElevatedButton(onPressed: _connect, child: const Text('Start Consultation')),
+          : ElevatedButton(
+              onPressed: () async {
+                try {
+                  await _cm.connect();
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Connect Error: $e")),
+                    );
+                  }
+                }
+              },
+              child: const Text('Start Consultation'),
+            ),
     );
   }
 
@@ -318,8 +211,8 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
         Expanded(
           flex: 4,
           child: _renderParticipantTile(
-            _focusedParticipant!,
-            isLocal: _focusedParticipant is LocalParticipant,
+            _cm.focusedParticipant!,
+            isLocal: _cm.focusedParticipant is LocalParticipant,
           ),
         ),
         SizedBox(
@@ -327,7 +220,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: allParticipants
-                .where((p) => p != _focusedParticipant)
+                .where((p) => p != _cm.focusedParticipant)
                 .map(
                   (p) => SizedBox(
                     width: 120,
@@ -404,106 +297,36 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildActionButton(
-            icon: _micEnabled ? Icons.mic : Icons.mic_off,
-            color: _micEnabled ? Colors.white24 : Colors.red,
-            onPressed: () {
-              _micEnabled = !_micEnabled;
-              _room?.localParticipant?.setMicrophoneEnabled(_micEnabled);
-              setState(() {});
-            },
+            icon: _cm.micEnabled ? Icons.mic : Icons.mic_off,
+            color: _cm.micEnabled ? Colors.white24 : Colors.red,
+            onPressed: _cm.toggleMic,
           ),
           _buildActionButton(
-            icon: _camEnabled ? Icons.videocam : Icons.videocam_off,
-            color: _camEnabled ? Colors.white24 : Colors.red,
-            onPressed: () {
-              _camEnabled = !_camEnabled;
-              _room?.localParticipant?.setCameraEnabled(_camEnabled);
-              setState(() {});
-            },
+            icon: _cm.camEnabled ? Icons.videocam : Icons.videocam_off,
+            color: _cm.camEnabled ? Colors.white24 : Colors.red,
+            onPressed: _cm.toggleCam,
           ),
           _buildActionButton(
             icon: Icons.flip_camera_ios,
             color: Colors.white24,
-            onPressed: () async {
-              final track = _room?.localParticipant?.videoTrackPublications.firstOrNull?.track;
-              if (track is LocalVideoTrack) {
-                // Access the facing mode from the map correctly using ['facingMode']
-                final settings = track.mediaStreamTrack.getSettings();
-                final isFront = settings['facingMode'] == 'user';
-
-                await track.restartTrack(
-                  CameraCaptureOptions(
-                    // Use the class constructor directly
-                    cameraPosition: isFront ? CameraPosition.back : CameraPosition.front,
-                  ),
-                );
-                setState(() {}); // Refresh UI
-              }
-            },
+            onPressed: _cm.flipCamera,
           ),
-
           _buildActionButton(
-            icon: _isRecording ? Icons.stop_circle : Icons.fiber_manual_record,
-            color: _isRecording ? Colors.red : Colors.white24,
-            onPressed: _toggleRecording,
+            icon: _cm.isRecording ? Icons.stop_circle : Icons.fiber_manual_record,
+            color: _cm.isRecording ? Colors.red : Colors.white24,
+            onPressed: _cm.toggleRecording,
           ),
-
           _buildActionButton(
-            icon: _isScreenShared ? Icons.stop_screen_share : Icons.screen_share,
-            color: _isScreenShared ? Colors.green : Colors.white24,
-            // Inside doctor_call_screen.dart -> _buildActionButton for Screen Share
-            // Inside doctor_call_screen.dart -> _buildControlBar
-            onPressed: () async {
-              try {
-                final bool willStartSharing = !_isScreenShared;
-
-                if (willStartSharing) {
-                  await _room?.localParticipant?.setCameraEnabled(false);
-                  await Future.delayed(const Duration(milliseconds: 250));
-                  await _room?.localParticipant?.setScreenShareEnabled(true);
-
-                  setState(() {
-                    _isScreenShared = true;
-                    _camEnabled = false;
-                  });
-                } else {
-                  final participant = _room?.localParticipant;
-
-                  // 1. Find the screen share publication
-                  final screenPub = participant?.videoTrackPublications.firstWhereOrNull(
-                    (p) => p.isScreenShare,
-                  );
-
-                  // 2. Explicitly stop the track to signal iOS to remove the red bar
-                  if (screenPub != null && screenPub.track != null) {
-                    await screenPub.track!.stop();
-                  }
-
-                  // 3. Disable the screen share state in LiveKit
-                  await participant?.setScreenShareEnabled(false);
-
-                  await Future.delayed(const Duration(milliseconds: 250));
-                  await participant?.setCameraEnabled(true);
-
-                  setState(() {
-                    _isScreenShared = false;
-                    _camEnabled = true;
-                  });
-                }
-              } catch (e) {
-                debugPrint("Screen share error: $e");
-                setState(() => _isScreenShared = false);
-              }
-            },
+            icon: _cm.isScreenShared ? Icons.stop_screen_share : Icons.screen_share,
+            color: _cm.isScreenShared ? Colors.green : Colors.white24,
+            onPressed: _cm.toggleScreenShare,
           ),
           _buildActionButton(
             icon: Icons.call_end,
             color: Colors.red,
             onPressed: () async {
-              await _room?.disconnect();
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('active_call_token');
-              setState(() => _room = null);
+              await _cm.disconnect();
+              if (mounted) setState(() {});
             },
           ),
         ],

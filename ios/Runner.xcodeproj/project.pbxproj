@@ -16,6 +16,7 @@
 		4F421F842F39C95A00441BFF /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4F421F832F39C95A00441BFF /* LiveKit */; };
 		4F421F862F39C99B00441BFF /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4F421F852F39C99B00441BFF /* LiveKit */; };
 		4F421F952F39CDD600441BFF /* LiveKitScreenShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4F421F672F39A78A00441BFF /* LiveKitScreenShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4F42224C2F4C2DD100441BFF /* PiPManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F42224B2F4C2DD100441BFF /* PiPManager.swift */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -66,6 +67,7 @@
 		4F421F682F39A78A00441BFF /* ReplayKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReplayKit.framework; path = System/Library/Frameworks/ReplayKit.framework; sourceTree = SDKROOT; };
 		4F421F9B2F39D09A00441BFF /* livekit_client.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = livekit_client.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F421F9F2F39D0CB00441BFF /* livekit_client.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = livekit_client.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F42224B2F4C2DD100441BFF /* PiPManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiPManager.swift; sourceTree = "<group>"; };
 		5C9AD7C0F9FC6F60177B27B2 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -182,6 +184,7 @@
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
+				4F42224B2F4C2DD100441BFF /* PiPManager.swift */,
 				4F326B6C2E8530C0008D680C /* Runner.entitlements */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
@@ -495,6 +498,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4F42224C2F4C2DD100441BFF /* PiPManager.swift in Sources */,
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
