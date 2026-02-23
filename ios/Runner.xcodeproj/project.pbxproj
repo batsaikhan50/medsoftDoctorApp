@@ -303,7 +303,7 @@
 						TestTargetID = 97C146ED1CF9000F007C117D;
 					};
 					4F421F662F39A78A00441BFF = {
-						CreatedOnToolsVersion = 26.1.1;
+						CreatedOnToolsVersion = 26.0.1;
 					};
 					97C146ED1CF9000F007C117D = {
 						CreatedOnToolsVersion = 7.3.1;
@@ -685,7 +685,7 @@
 				INFOPLIST_FILE = LiveKitScreenShare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveKitScreenShare;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -730,7 +730,7 @@
 				INFOPLIST_FILE = LiveKitScreenShare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveKitScreenShare;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -772,7 +772,7 @@
 				INFOPLIST_FILE = LiveKitScreenShare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveKitScreenShare;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
