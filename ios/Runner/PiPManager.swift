@@ -290,17 +290,34 @@ class PiPManager: NSObject, AVPictureInPictureControllerDelegate {
     /// Called from AppDelegate willResignActive
     func onAppWillResignActive() {
         guard hasRemoteTrack else { return }
+        // Restore alpha (may have been zeroed on previous foreground return)
+        videoView?.alpha = 1.0
         // Switch to high frame rate for smooth PiP
         frameRenderer?.frameSkip = 2  // ~15fps
         print("PiPManager: Renderer → active (~15fps)")
     }
 
-    /// Called from AppDelegate didBecomeActive
+    /// Called from AppDelegate willEnterForeground / didBecomeActive
     func onAppDidBecomeActive() {
+        guard isPiPActive || pipController?.isPictureInPictureActive == true else {
+            // Not in PiP — just ensure idle state
+            frameRenderer?.frameSkip = 30
+            return
+        }
+
+        // 1. Make the source view transparent so any restore animation is invisible
+        videoView?.alpha = 0
+
+        // 2. Flush the display layer — removes all content so PiP window goes blank
+        videoView?.sampleBufferLayer.flush()
+
+        // 3. Stop PiP
         stopPiP()
-        // Switch back to idle
-        frameRenderer?.frameSkip = 30  // ~1fps
-        print("PiPManager: Renderer → idle (~1fps)")
+
+        // 4. Switch back to idle
+        frameRenderer?.frameSkip = 30
+        isPiPActive = false
+        print("PiPManager: PiP dismissed, renderer → idle")
     }
 
     func startPiP() {
@@ -358,7 +375,13 @@ class PiPManager: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     func pictureInPictureController(_ c: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
-        completionHandler(true)
+        // completionHandler(false) tells iOS NOT to animate PiP expanding
+        // back to the inline source view. PiP just disappears cleanly.
+        videoView?.alpha = 0
+        videoView?.sampleBufferLayer.flush()
+        frameRenderer?.frameSkip = 30
+        isPiPActive = false
+        completionHandler(false)
     }
 }
 

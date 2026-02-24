@@ -66,7 +66,20 @@ import UIKit
       }
     }
 
-    // Detach renderer when returning to foreground — zero overhead during call
+    // Stop PiP early — willEnterForeground fires BEFORE the app UI appears
+    NotificationCenter.default.addObserver(
+      forName: UIApplication.willEnterForegroundNotification,
+      object: nil,
+      queue: .main
+    ) { _ in
+      if #available(iOS 15.0, *) {
+        PiPManager.shared?.onAppDidBecomeActive()
+      }
+    }
+
+    // Fallback: also stop PiP on didBecomeActive — covers the case where
+    // the user taps the app icon while PiP is open (willEnterForeground
+    // may not fire if the app was already considered foreground with PiP).
     NotificationCenter.default.addObserver(
       forName: UIApplication.didBecomeActiveNotification,
       object: nil,
