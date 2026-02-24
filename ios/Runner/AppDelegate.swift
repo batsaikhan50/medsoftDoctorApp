@@ -55,6 +55,28 @@ import UIKit
       }
     }
 
+    // Attach renderer when going to background so PiP has frames
+    NotificationCenter.default.addObserver(
+      forName: UIApplication.willResignActiveNotification,
+      object: nil,
+      queue: .main
+    ) { _ in
+      if #available(iOS 15.0, *) {
+        PiPManager.shared?.onAppWillResignActive()
+      }
+    }
+
+    // Detach renderer when returning to foreground — zero overhead during call
+    NotificationCenter.default.addObserver(
+      forName: UIApplication.didBecomeActiveNotification,
+      object: nil,
+      queue: .main
+    ) { _ in
+      if #available(iOS 15.0, *) {
+        PiPManager.shared?.onAppDidBecomeActive()
+      }
+    }
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

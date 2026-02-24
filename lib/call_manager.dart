@@ -294,24 +294,21 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  // --- App Lifecycle for OS-level PiP ---
+  // --- App Lifecycle ---
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_room == null) return;
 
     if (state == AppLifecycleState.inactive) {
-      // Hide the in-app PiP overlay before going to background
-      // to avoid double-rendering lag when returning.
+      // Hide in-app PiP overlay before going to background
       hidePip();
-
       if (Platform.isAndroid) {
         _enterAndroidPip();
-      } else if (Platform.isIOS) {
-        _startIosPip();
       }
+      // iOS PiP is handled natively by AppDelegate.willResignActive
     } else if (state == AppLifecycleState.resumed) {
-      // Re-show in-app PiP if we're not on the call screen
+      // Re-show in-app PiP if not on call screen
       if (!_isOnCallScreen && _room != null && _pipOverlay == null) {
         showPip();
       }
@@ -327,9 +324,8 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Feed the remote video track to the native PiP display layer.
-  /// Called early (when remote participant joins) so frames are flowing
-  /// before PiP actually starts.
+  /// Feed remote video track ID to native side (for iOS PiP).
+  /// Called when a remote participant subscribes to a track.
   Future<void> _feedRemoteTrackToNative() async {
     if (!Platform.isIOS || _room == null) return;
     try {
@@ -343,20 +339,6 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
       }
     } catch (e) {
       debugPrint("Feed remote track error: $e");
-    }
-  }
-
-  /// Only start PiP — assumes remote track is already feeding frames.
-  Future<void> _startIosPip() async {
-    if (!Platform.isIOS || _room == null) return;
-    try {
-      // Feed track again in case it wasn't set up yet
-      await _feedRemoteTrackToNative();
-      // Small delay to let frames flow to the display layer
-      await Future.delayed(const Duration(milliseconds: 200));
-      await _pipChannel.invokeMethod('startPiP');
-    } catch (e) {
-      debugPrint("iOS PiP start error: $e");
     }
   }
 

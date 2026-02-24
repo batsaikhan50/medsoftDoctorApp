@@ -30,7 +30,6 @@ class _PipOverlayWidgetState extends State<PipOverlayWidget> {
   void initState() {
     super.initState();
     widget.callManager.addListener(_onCallStateChanged);
-    // Position at bottom-right by default after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final size = MediaQuery.of(context).size;
       setState(() {
@@ -58,7 +57,6 @@ class _PipOverlayWidgetState extends State<PipOverlayWidget> {
     final room = widget.callManager.room;
     if (room == null) return _buildPlaceholder();
 
-    // Show remote participant's video
     final remoteParticipant = room.remoteParticipants.values.firstOrNull;
     if (remoteParticipant == null) return _buildPlaceholder();
 
@@ -98,8 +96,6 @@ class _PipOverlayWidgetState extends State<PipOverlayWidget> {
           setState(() {
             _xPos += details.delta.dx;
             _yPos += details.delta.dy;
-
-            // Keep within screen bounds
             final size = MediaQuery.of(context).size;
             _xPos = _xPos.clamp(0, size.width - _width);
             _yPos = _yPos.clamp(0, size.height - _height);
@@ -139,7 +135,7 @@ class _PipOverlayWidgetState extends State<PipOverlayWidget> {
                       ),
                     ),
                   ),
-                  // Expand button
+                  // Expand icon
                   Positioned(
                     bottom: 4,
                     right: 4,

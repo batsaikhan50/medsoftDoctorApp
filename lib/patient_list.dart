@@ -98,9 +98,9 @@ class PatientListScreenState extends State<PatientListScreen> {
           isLoading = false;
         });
       } else {
-        if (response.statusCode == 401 || response.statusCode == 403) {
-          _logOut();
-        }
+        // if (response.statusCode == 401 || response.statusCode == 403) {
+        //   _logOut();
+        // }
         if (initialLoad) {
           setState(() => isLoading = false);
         }
