@@ -98,6 +98,7 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
       final data = jsonDecode(response.body);
       return data['token'];
     } else {
+      debugPrint(response.body.toString());
       throw Exception('Failed to fetch token');
     }
   }
@@ -236,9 +237,7 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
       final settings = track.mediaStreamTrack.getSettings();
       final isFront = settings['facingMode'] == 'user';
       await track.restartTrack(
-        CameraCaptureOptions(
-          cameraPosition: isFront ? CameraPosition.back : CameraPosition.front,
-        ),
+        CameraCaptureOptions(cameraPosition: isFront ? CameraPosition.back : CameraPosition.front),
       );
       notifyListeners();
     }
@@ -365,11 +364,8 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     if (overlay == null) return;
 
     _pipOverlay = OverlayEntry(
-      builder: (context) => PipOverlayWidget(
-        callManager: this,
-        onTap: _returnToCallScreen,
-        onClose: hidePip,
-      ),
+      builder: (context) =>
+          PipOverlayWidget(callManager: this, onTap: _returnToCallScreen, onClose: hidePip),
     );
     overlay.insert(_pipOverlay!);
   }
@@ -426,9 +422,9 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     if (!Platform.isIOS || _room == null) return;
     try {
       final remoteParticipant = _room!.remoteParticipants.values.firstOrNull;
-      final remotePub = remoteParticipant?.videoTrackPublications.firstWhereOrNull(
-        (e) => !e.isScreenShare,
-      ) ?? remoteParticipant?.videoTrackPublications.firstOrNull;
+      final remotePub =
+          remoteParticipant?.videoTrackPublications.firstWhereOrNull((e) => !e.isScreenShare) ??
+          remoteParticipant?.videoTrackPublications.firstOrNull;
       if (remotePub?.track != null) {
         final trackId = remotePub!.track!.mediaStreamTrack.id;
         await _pipChannel.invokeMethod('remoteStream', {'remoteId': trackId});
