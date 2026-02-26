@@ -1,7 +1,92 @@
 import ReplayKit
-import LiveKit
+import OSLog
 
-final class SampleHandler: LKSampleHandler, @unchecked Sendable {
-    // LKSampleHandler handles the broadcast lifecycle automatically.
-    // Ensure your App Group is correctly configured in your Entitlements.
+let broadcastLogger = OSLog(subsystem: "com.batsaikhan.medsoftDoctor", category: "Broadcast")
+
+private enum AppConstants {
+    static let appGroupIdentifier = "group.com.medsoftDoctor"
+}
+
+class SampleHandler: RPBroadcastSampleHandler {
+
+    private var clientConnection: SocketConnection?
+    private var uploader: SampleUploader?
+    private var frameCount: Int = 0
+
+    var socketFilePath: String {
+        let sharedContainer = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: AppConstants.appGroupIdentifier
+        )
+        return sharedContainer?.appendingPathComponent("rtc_SSFD").path ?? ""
+    }
+
+    override init() {
+        super.init()
+        if let connection = SocketConnection(filePath: socketFilePath) {
+            clientConnection = connection
+            setupConnection()
+            uploader = SampleUploader(connection: connection)
+        }
+        os_log(.debug, log: broadcastLogger, "SampleHandler init, socket: %{public}s", socketFilePath)
+    }
+
+    override func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {
+        frameCount = 0
+        DarwinNotificationCenter.shared.postNotification(.broadcastStarted)
+        // openConnection retries every 100ms until the socket file exists
+        // and the main app's socket server is ready. This handles the timing
+        // gap where the main app hasn't created the socket yet.
+        openConnection()
+    }
+
+    override func broadcastPaused() {}
+
+    override func broadcastResumed() {}
+
+    override func broadcastFinished() {
+        DarwinNotificationCenter.shared.postNotification(.broadcastStopped)
+        clientConnection?.close()
+    }
+
+    override func processSampleBuffer(_ sampleBuffer: CMSampleBuffer, with sampleBufferType: RPSampleBufferType) {
+        switch sampleBufferType {
+        case RPSampleBufferType.video:
+            uploader?.send(sample: sampleBuffer)
+        default:
+            break
+        }
+    }
+}
+
+private extension SampleHandler {
+
+    func setupConnection() {
+        clientConnection?.didClose = { [weak self] (error: Error?) in
+            os_log(.debug, log: broadcastLogger, "client connection did close %{public}s", String(describing: error))
+
+            if let error = error {
+                self?.finishBroadcastWithError(error)
+            } else {
+                let customError = NSError(
+                    domain: RPRecordingErrorDomain,
+                    code: 10001,
+                    userInfo: [NSLocalizedDescriptionKey: "Screen sharing stopped"]
+                )
+                self?.finishBroadcastWithError(customError)
+            }
+        }
+    }
+
+    func openConnection() {
+        let queue = DispatchQueue(label: "broadcast.connectTimer")
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now(), repeating: .milliseconds(100), leeway: .milliseconds(500))
+        timer.setEventHandler { [weak self] in
+            guard self?.clientConnection?.open() == true else {
+                return
+            }
+            timer.cancel()
+        }
+        timer.resume()
+    }
 }

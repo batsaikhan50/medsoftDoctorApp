@@ -42,6 +42,14 @@ import UIKit
             result(FlutterError(code: "INVALID_ARGS", message: "remoteId required", details: nil))
           }
 
+        case "teardownPiP":
+          PiPManager.shared?.teardownForScreenShare()
+          result(true)
+
+        case "restorePiP":
+          PiPManager.shared?.restoreAfterScreenShare()
+          result(true)
+
         case "dispose":
           PiPManager.shared?.disposePiP()
           PiPManager.shared = nil

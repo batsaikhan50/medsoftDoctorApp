@@ -210,6 +210,7 @@ class PiPManager: NSObject, AVPictureInPictureControllerDelegate {
     private var isRendererAttached = false
     private var hasRemoteTrack = false
     private var isPiPActive = false
+    private var isPiPSuppressed = false
 
     override init() {
         super.init()
@@ -287,9 +288,56 @@ class PiPManager: NSObject, AVPictureInPictureControllerDelegate {
         print("PiPManager: Remote track set successfully")
     }
 
+    /// Fully tear down PiP controller before screen share to avoid
+    /// AVPictureInPictureController conflicting with ReplayKit broadcast extension.
+    func teardownForScreenShare() {
+        isPiPSuppressed = true
+        stopPiP()
+        // Detach renderer to reduce background work
+        if let track = remoteVideoTrack, let renderer = frameRenderer, isRendererAttached {
+            track.remove(renderer)
+            isRendererAttached = false
+        }
+        // Destroy the PiP controller entirely
+        pipController = nil
+        pipContentSource = nil
+        print("PiPManager: Torn down for screen share")
+    }
+
+    /// Restore PiP controller after screen share ends.
+    func restoreAfterScreenShare() {
+        isPiPSuppressed = false
+
+        // Guard: don't recreate if controller already exists (prevents double-restore crash)
+        guard pipController == nil, let videoView = videoView else {
+            print("PiPManager: Restore skipped (already active or no view)")
+            return
+        }
+
+        let source = AVPictureInPictureController.ContentSource(
+            sampleBufferDisplayLayer: videoView.sampleBufferLayer,
+            playbackDelegate: self
+        )
+        pipContentSource = source
+        pipController = AVPictureInPictureController(contentSource: source)
+        pipController?.delegate = self
+        pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+        if #available(iOS 16.0, *) {
+            pipController?.requiresLinearPlayback = true
+        }
+
+        // Re-attach renderer if we have a remote track
+        if let track = remoteVideoTrack, let renderer = frameRenderer, !isRendererAttached {
+            renderer.frameSkip = 30  // idle
+            track.add(renderer)
+            isRendererAttached = true
+        }
+        print("PiPManager: Restored after screen share")
+    }
+
     /// Called from AppDelegate willResignActive
     func onAppWillResignActive() {
-        guard hasRemoteTrack else { return }
+        guard hasRemoteTrack, !isPiPSuppressed else { return }
         // Restore alpha (may have been zeroed on previous foreground return)
         videoView?.alpha = 1.0
         // Switch to high frame rate for smooth PiP

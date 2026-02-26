@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:livekit_client/livekit_client.dart';
+// ignore: implementation_imports
+import 'package:livekit_client/src/managers/broadcast_manager.dart';
 import 'package:medsoft_doctor/constants.dart';
 import 'package:medsoft_doctor/pip_overlay.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -106,17 +108,40 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _requestPermissions();
       final token = existingToken ?? await _getToken();
-      final room = Room();
+      final room = Room(
+        roomOptions: const RoomOptions(
+          defaultScreenShareCaptureOptions: ScreenShareCaptureOptions(
+            useiOSBroadcastExtension: true,
+          ),
+        ),
+      );
 
       _listener = room.events.listen((event) {
         if (event is RoomRecordingStatusChanged) {
           _isRecording = event.activeRecording;
           notifyListeners();
         }
-        if (event is LocalTrackUnpublishedEvent) {
+        if (event is LocalTrackPublishedEvent) {
           if (event.publication.isScreenShare) {
+            _isScreenShared = true;
+            _isStartingScreenShare = false;
+            _camEnabled = false;
+            debugPrint("Screen share track published");
+            // Restore PiP now that screen share is established.
+            // ReplayKit is done initializing, so PiP won't conflict.
+            // This allows out-of-app PiP during active screen sharing.
+            if (Platform.isIOS) {
+              _pipChannel.invokeMethod('restorePiP').catchError((_) {});
+            }
+            notifyListeners();
+          }
+        } else if (event is LocalTrackUnpublishedEvent) {
+          if (event.publication.isScreenShare && !_isStartingScreenShare) {
             _isScreenShared = false;
             _camEnabled = true;
+            debugPrint("Screen share track unpublished");
+            // Don't call restorePiP here — toggleScreenShare() handles it.
+            // Calling it from both places causes double-restore → EXC_BAD_ACCESS.
             notifyListeners();
           }
         } else {
@@ -161,6 +186,20 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> disconnect() async {
+    // Stop screen share broadcast before disconnecting to prevent
+    // "interrupted by another application" error on next session.
+    if (_isScreenShared || _isStartingScreenShare) {
+      try {
+        await _room?.localParticipant?.setScreenShareEnabled(false);
+      } catch (_) {}
+      // Signal the broadcast extension process to stop (removes red status bar)
+      if (Platform.isIOS) {
+        try {
+          await BroadcastManager().requestStop();
+        } catch (_) {}
+      }
+    }
+    _isStartingScreenShare = false;
     await _room?.disconnect();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('active_call_token');
@@ -229,32 +268,87 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  bool _isStartingScreenShare = false;
+
   Future<void> toggleScreenShare() async {
     try {
       final bool willStartSharing = !_isScreenShared;
       if (willStartSharing) {
+        _isStartingScreenShare = true;
+        notifyListeners();
+
         await _room?.localParticipant?.setCameraEnabled(false);
-        await Future.delayed(const Duration(milliseconds: 250));
-        await _room?.localParticipant?.setScreenShareEnabled(true);
-        _isScreenShared = true;
         _camEnabled = false;
-      } else {
-        final participant = _room?.localParticipant;
-        final screenPub = participant?.videoTrackPublications.firstWhereOrNull(
-          (p) => p.isScreenShare,
-        );
-        if (screenPub != null && screenPub.track != null) {
-          await screenPub.track!.stop();
+
+        if (Platform.isIOS) {
+          // Stop any lingering broadcast from a previous attempt to prevent
+          // the "Recording interrupted by another application" error popup.
+          try {
+            await BroadcastManager().requestStop();
+          } catch (_) {}
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          // Tear down PiP controller to avoid AVPictureInPictureController
+          // conflicting with ReplayKit's broadcast extension.
+          try {
+            await _pipChannel.invokeMethod('teardownPiP');
+          } catch (_) {}
         }
+
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        // On iOS with broadcast extension, this shows the picker and returns
+        // null immediately. The actual track publish happens later via
+        // LocalTrackPublishedEvent when the Darwin notification arrives.
+        await _room?.localParticipant?.setScreenShareEnabled(
+          true,
+          screenShareCaptureOptions: const ScreenShareCaptureOptions(
+            useiOSBroadcastExtension: true,
+          ),
+        );
+
+        // On non-iOS platforms, setScreenShareEnabled awaits the track publish,
+        // so we can set the state here. On iOS, LocalTrackPublishedEvent will
+        // set _isScreenShared = true when the broadcast actually starts.
+        if (!Platform.isIOS) {
+          _isScreenShared = true;
+          _isStartingScreenShare = false;
+        }
+      } else {
+        // Signal the broadcast extension to stop first (removes red status bar)
+        if (Platform.isIOS) {
+          try {
+            await BroadcastManager().requestStop();
+          } catch (_) {}
+          // Give the extension time to finish
+          await Future.delayed(const Duration(milliseconds: 200));
+        }
+
+        final participant = _room?.localParticipant;
         await participant?.setScreenShareEnabled(false);
+        _isScreenShared = false;
+
+        // Restore PiP controller on iOS
+        if (Platform.isIOS) {
+          try {
+            await _pipChannel.invokeMethod('restorePiP');
+          } catch (_) {}
+        }
+
         await Future.delayed(const Duration(milliseconds: 250));
         await participant?.setCameraEnabled(true);
-        _isScreenShared = false;
         _camEnabled = true;
       }
     } catch (e) {
       debugPrint("Screen share error: $e");
       _isScreenShared = false;
+      _isStartingScreenShare = false;
+      // Restore PiP if screen share failed
+      if (Platform.isIOS) {
+        try {
+          await _pipChannel.invokeMethod('restorePiP');
+        } catch (_) {}
+      }
     }
     notifyListeners();
   }
@@ -301,6 +395,8 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     if (_room == null) return;
 
     if (state == AppLifecycleState.inactive) {
+      // Don't trigger PiP when the broadcast picker is showing
+      if (_isStartingScreenShare) return;
       // Hide in-app PiP overlay before going to background
       hidePip();
       if (Platform.isAndroid) {
