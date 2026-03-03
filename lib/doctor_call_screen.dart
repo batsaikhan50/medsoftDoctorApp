@@ -85,7 +85,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
                 child: (trackPub?.track is VideoTrack && !isMuted)
                     ? VideoTrackRenderer(
                         trackPub!.track as VideoTrack,
-                        fit: trackPub.isScreenShare ? VideoViewFit.contain : VideoViewFit.cover,
+                        fit: VideoViewFit.contain,
                         mirrorMode: (isLocal && !trackPub.isScreenShare)
                             ? VideoViewMirrorMode.mirror
                             : VideoViewMirrorMode.off,

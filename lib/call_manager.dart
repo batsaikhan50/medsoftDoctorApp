@@ -92,7 +92,7 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
       throw Exception('Username not found in SharedPreferences');
     }
     final response = await http.get(
-      Uri.parse('${Constants.liveKitTokenUrl}/token?identity=$username&room=testroom'),
+      Uri.parse('${Constants.recordingUrl}/token?identity=$username&room=testroom'),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -111,6 +111,23 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
       final token = existingToken ?? await _getToken();
       final room = Room(
         roomOptions: const RoomOptions(
+          defaultCameraCaptureOptions: CameraCaptureOptions(
+            params: VideoParameters(
+              dimensions: VideoDimensions(720, 1280), // 720p portrait
+              // dimensions: VideoDimensions(540, 960),     // 540p portrait
+              // dimensions: VideoDimensions(360, 640),  // 360p portrait
+            ),
+          ),
+          defaultVideoPublishOptions: VideoPublishOptions(
+            simulcast: false, // disable multi-layer encoding
+            videoEncoding: VideoEncoding(
+              maxBitrate: 1500 * 1000, // 1.5 Mbps
+              // maxBitrate: 800 * 1000, // 800 Kbps
+              // maxBitrate: 500 * 1000,  // 500 Kbps
+              maxFramerate: 25,
+              // maxFramerate: 15,
+            ),
+          ),
           defaultScreenShareCaptureOptions: ScreenShareCaptureOptions(
             useiOSBroadcastExtension: true,
           ),
