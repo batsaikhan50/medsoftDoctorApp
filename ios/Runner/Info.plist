@@ -66,7 +66,6 @@
         <array>
             <string>audio</string>
             <string>voip</string>
-            <string>picture-in-picture</string>
         </array>
 		<key>NSPhotoLibraryAddUsageDescription</key>
 		<string>This app may save screenshots for consultations.</string>
