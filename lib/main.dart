@@ -7,13 +7,11 @@ import 'package:medsoft_doctor/call_manager.dart';
 import 'package:medsoft_doctor/doctor_call_screen.dart';
 import 'package:medsoft_doctor/emergency_list.dart';
 import 'package:medsoft_doctor/guide.dart';
-import 'package:medsoft_doctor/home_screen.dart';
 import 'package:medsoft_doctor/patient_list.dart';
 import 'package:medsoft_doctor/profile_screen.dart';
 import 'package:medsoft_doctor/qr_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uni_links/uni_links.dart';
 
