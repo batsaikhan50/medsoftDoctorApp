@@ -13,7 +13,7 @@ import 'package:medsoft_doctor/qr_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uni_links/uni_links.dart';
+import 'package:app_links/app_links.dart';
 
 import 'login.dart';
 
@@ -55,11 +55,11 @@ class MyApp extends StatelessWidget {
 
   Future<Widget> _getInitialScreen() async {
     final prefs = await SharedPreferences.getInstance();
-    final initialLink = await getInitialLink();
-    debugPrint("INMY MAIN'S _getInitialScreen initialLink: $initialLink");
+    final initialUri = await AppLinks().getInitialLink();
+    debugPrint("INMY MAIN'S _getInitialScreen initialLink: $initialUri");
 
-    if (initialLink != null) {
-      Uri uri = Uri.parse(initialLink);
+    if (initialUri != null) {
+      Uri uri = initialUri;
 
       if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
         String token = uri.pathSegments[1];
@@ -150,24 +150,21 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
-    linkStream.listen((link) async {
-      if (link != null) {
-        Uri uri = Uri.parse(link);
-        if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
-          String token = uri.pathSegments[1];
+    AppLinks().uriLinkStream.listen((uri) async {
+      if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'qr') {
+        String token = uri.pathSegments[1];
 
-          await saveScannedToken(token);
+        await saveScannedToken(token);
 
-          bool waitSuccess = false;
+        bool waitSuccess = false;
 
-          final prefs = await SharedPreferences.getInstance();
-          if (prefs.getBool('isLoggedIn') == true) {
-            waitSuccess = await callWaitApi(token);
-          }
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.getBool('isLoggedIn') == true) {
+          waitSuccess = await callWaitApi(token);
+        }
 
-          if (waitSuccess && mounted) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)));
-          }
+        if (waitSuccess && mounted) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => ClaimQRScreen(token: token)));
         }
       }
     });

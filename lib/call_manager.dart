@@ -33,9 +33,17 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
   // PiP overlay
   OverlayEntry? _pipOverlay;
   bool _isOnCallScreen = false;
+  bool _isInAndroidPip = false;
+
+  // Incremented after a PiP transition so VideoTrackRenderers are rebuilt
+  // once the EGL surface and MediaCodec have fully settled (Android issue).
+  int _videoRebuildToken = 0;
+  int get videoRebuildToken => _videoRebuildToken;
+
 
   // Platform channel for native PiP
   static const _pipChannel = MethodChannel('pip_channel');
+  static const _screenCaptureChannel = MethodChannel('screen_capture_channel');
 
   // Getters
   Room? get room => _room;
@@ -48,6 +56,7 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
   Participant? get focusedParticipant => _focusedParticipant;
   bool get isConnected => _room != null;
   bool get isOnCallScreen => _isOnCallScreen;
+  bool get isInAndroidPip => _isInAndroidPip;
 
   List<Participant> get allParticipants {
     if (_room == null) return [];
@@ -58,7 +67,19 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
 
   void init() {
     WidgetsBinding.instance.addObserver(this);
+    if (Platform.isAndroid) {
+      _pipChannel.setMethodCallHandler(_handleNativePipCall);
+    }
   }
+
+  Future<dynamic> _handleNativePipCall(MethodCall call) async {
+    if (call.method == 'pipModeChanged') {
+      final bool isInPip = call.arguments as bool;
+      _isInAndroidPip = isInPip;
+      notifyListeners();
+    }
+  }
+
 
   void setOnCallScreen(bool value) {
     _isOnCallScreen = value;
@@ -77,7 +98,12 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     final savedToken = prefs.getString('active_call_token');
     if (savedToken != null && _room == null) {
       debugPrint("Found active session, reconnecting...");
-      await connect(existingToken: savedToken);
+      try {
+        await connect(existingToken: savedToken);
+      } catch (e) {
+        // Token is expired or invalid — connect() already cleared it.
+        debugPrint("Saved session reconnect failed: $e");
+      }
     }
   }
 
@@ -313,6 +339,11 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
 
         await Future.delayed(const Duration(milliseconds: 300));
 
+        if (Platform.isAndroid) {
+          await _screenCaptureChannel.invokeMethod('startForeground');
+          await Future.delayed(const Duration(milliseconds: 200));
+        }
+
         // On iOS with broadcast extension, this shows the picker and returns
         // null immediately. The actual track publish happens later via
         // LocalTrackPublishedEvent when the Darwin notification arrives.
@@ -344,6 +375,10 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
         await participant?.setScreenShareEnabled(false);
         _isScreenShared = false;
 
+        if (Platform.isAndroid) {
+          _screenCaptureChannel.invokeMethod('stopForeground').catchError((_) {});
+        }
+
         // Restore PiP controller on iOS
         if (Platform.isIOS) {
           try {
@@ -354,11 +389,23 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
         await Future.delayed(const Duration(milliseconds: 250));
         await participant?.setCameraEnabled(true);
         _camEnabled = true;
+
+        // On Android the camera track is torn down and republished during
+        // screen share, leaving ImageTextureEntry stale. Wait for the new
+        // camera track to start producing frames, then rebuild renderers so
+        // the next PiP cycle doesn't encounter a stale surface.
+        if (Platform.isAndroid) {
+          await Future.delayed(const Duration(milliseconds: 300));
+          _videoRebuildToken++;
+        }
       }
     } catch (e) {
       debugPrint("Screen share error: $e");
       _isScreenShared = false;
       _isStartingScreenShare = false;
+      if (Platform.isAndroid) {
+        _screenCaptureChannel.invokeMethod('stopForeground').catchError((_) {});
+      }
       // Restore PiP if screen share failed
       if (Platform.isIOS) {
         try {
@@ -413,10 +460,18 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
       // Hide in-app PiP overlay before going to background
       hidePip();
       if (Platform.isAndroid) {
+        // _isInAndroidPip state is managed by onPictureInPictureModeChanged
+        // via _handleNativePipCall. Just trigger the enter here.
         _enterAndroidPip();
       }
       // iOS PiP is handled natively by AppDelegate.willResignActive
     } else if (state == AppLifecycleState.resumed) {
+      // Backup for the race condition where resumed is processed by Dart
+      // BEFORE pipModeChanged(false) arrives (ordering depends on Android
+      if (Platform.isAndroid && _isInAndroidPip) {
+        _isInAndroidPip = false;
+        notifyListeners();
+      }
       // Re-show in-app PiP if not on call screen
       if (!_isOnCallScreen && _room != null && _pipOverlay == null) {
         showPip();

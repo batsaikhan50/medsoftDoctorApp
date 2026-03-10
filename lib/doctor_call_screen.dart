@@ -18,6 +18,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   bool uiTest = false;
   int roomSize = 3;
 
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +60,11 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
 
     final isMuted = isLocal ? !_cm.camEnabled : (trackPub?.muted ?? true);
 
-    return GestureDetector(
+    // Wrap remote tiles in KeyedSubtree so only the remote VideoTrackRenderer
+    // (decoder) is rebuilt on EGL transitions. Rebuilding the local tile would
+    // restart the VP8 encoder (OMX.Exynos.VP8.Encoder Executing→Idle) causing
+    // a blank feed from the new ImageTextureEntry during encoder reinit.
+    final tile = GestureDetector(
       onTap: () {
         _cm.setFocusedParticipant(
           _cm.focusedParticipant == participant ? null : participant,
@@ -117,6 +122,12 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
         ),
       ),
     );
+
+    if (isLocal) return tile;
+    return KeyedSubtree(
+      key: ValueKey('${participant.identity}_${_cm.videoRebuildToken}'),
+      child: tile,
+    );
   }
 
   Widget _buildDummyTile(int index) {
@@ -157,11 +168,15 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
       ]);
     }
 
+    // Never filter participants based on PiP state — removing participants from
+    // the list disposes VideoTrackRenderers during the EGL transition, which
+    // creates new ImageTextureEntry objects in a broken EGL context (white screen).
+    // Local tile visibility in PiP is handled inside _buildIPhone1vs1 instead.
     final allParticipants = _cm.allParticipants;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
+      appBar: _cm.isInAndroidPip ? null : AppBar(
         title: Text(uiTest ? 'UI TEST MODE ($roomSize)' : 'Doctor Portal'),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -177,7 +192,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
                         ? _buildZoomedView(allParticipants)
                         : _buildDefaultLayout(allParticipants),
                   ),
-                  _buildControlBar(),
+                  if (!_cm.isInAndroidPip) _buildControlBar(),
                 ],
               ),
             ),
@@ -264,12 +279,20 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     return Stack(
       children: [
         Positioned.fill(child: _renderParticipantTile(participants[1])),
+        // Use Visibility(maintainState: true) so the local VideoTrackRenderer
+        // is NEVER disposed during PiP transitions — disposing during the EGL
+        // surface recreation creates a new ImageTextureEntry in a broken
+        // context, causing a white screen on the 2nd+ PiP cycle.
         Positioned(
           top: 10,
           right: 10,
           width: 110,
           height: 160,
-          child: _renderParticipantTile(participants[0], isLocal: true),
+          child: Visibility(
+            visible: !_cm.isInAndroidPip,
+            maintainState: true,
+            child: _renderParticipantTile(participants[0], isLocal: true),
+          ),
         ),
       ],
     );
@@ -293,7 +316,9 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     return Container(
       color: Colors.black,
       padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Row(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildActionButton(
@@ -330,6 +355,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
             },
           ),
         ],
+      ),
       ),
     );
   }
