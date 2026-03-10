@@ -6,10 +6,16 @@ import android.content.res.Configuration
 import android.os.Build
 import android.util.Rational
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.RenderMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    // TextureView instead of SurfaceView: Samsung One UI has a known bug where
+    // SurfaceView surfaces are not redrawn after the PiP window is created,
+    // causing the entire PiP window to show white. TextureView uses Android's
+    // hardware-accelerated layer compositing which handles PiP correctly on One UI.
+    override fun getRenderMode(): RenderMode = RenderMode.texture
     private val PIP_CHANNEL = "pip_channel"
     private val SCREEN_CAPTURE_CHANNEL = "screen_capture_channel"
     private var isInCall = false
@@ -49,7 +55,13 @@ class MainActivity : FlutterActivity() {
                                 .setAutoEnterEnabled(true)
                                 .build()
                             setPictureInPictureParams(params)
-                            enterPictureInPictureMode(params)
+                            // On Android 12+, setAutoEnterEnabled handles entry automatically.
+                            // Only call enterPictureInPictureMode manually if not already in PiP
+                            // to avoid double-triggering which confuses the system's "expand" intent
+                            // (causing zoom-only behavior on Samsung/MIUI on repeated PiP cycles).
+                            if (!isInPictureInPictureMode) {
+                                enterPictureInPictureMode(params)
+                            }
                             result.success(true)
                         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             val params = PictureInPictureParams.Builder()

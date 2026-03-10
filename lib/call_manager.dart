@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -146,6 +147,10 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
           ),
           defaultVideoPublishOptions: VideoPublishOptions(
             simulcast: false, // disable multi-layer encoding
+            // H264 instead of VP8: Samsung Exynos has dedicated H264 hardware
+            // (OMX.Exynos.avc.dec) vs the buggy VP8 hybrid decoder
+            // (OMX.Exynos.vp8.dec ERROR 0x8000100b) that causes white PiP on Note 10.
+            videoCodec: 'h264',
             videoEncoding: VideoEncoding(
               maxBitrate: 1500 * 1000, // 1.5 Mbps
               // maxBitrate: 800 * 1000, // 800 Kbps

@@ -230,8 +230,8 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
             isLocal: _cm.focusedParticipant is LocalParticipant,
           ),
         ),
-        SizedBox(
-          height: 120,
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 120),
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: allParticipants
