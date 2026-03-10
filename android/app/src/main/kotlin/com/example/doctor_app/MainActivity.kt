@@ -48,50 +48,32 @@ class MainActivity : FlutterActivity() {
         pipChannel!!.setMethodCallHandler { call, result ->
                 when (call.method) {
                     "enterPiP" -> {
+                        // setAutoEnterEnabled is intentionally NOT used. Auto-enter races with
+                        // Flutter's AppLifecycleState.inactive → _enterAndroidPip() path, causing
+                        // a double-trigger on the 2nd+ PiP cycle: both auto-enter animation and
+                        // manual enterPictureInPictureMode fire while isInPictureInPictureMode is
+                        // still false → Samsung compositor gets corrupted → white window.
+                        // Using manual-only entry via onUserLeaveHint (all Android O+) is clean
+                        // and consistent with no double-trigger risk.
                         isInCall = true
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val params = PictureInPictureParams.Builder()
-                                .setAspectRatio(Rational(9, 16))
-                                .setAutoEnterEnabled(true)
-                                .build()
-                            setPictureInPictureParams(params)
-                            // On Android 12+, setAutoEnterEnabled handles entry automatically.
-                            // Only call enterPictureInPictureMode manually if not already in PiP
-                            // to avoid double-triggering which confuses the system's "expand" intent
-                            // (causing zoom-only behavior on Samsung/MIUI on repeated PiP cycles).
-                            if (!isInPictureInPictureMode) {
-                                enterPictureInPictureMode(params)
-                            }
-                            result.success(true)
-                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isInPictureInPictureMode) {
                             val params = PictureInPictureParams.Builder()
                                 .setAspectRatio(Rational(9, 16))
                                 .build()
                             enterPictureInPictureMode(params)
                             result.success(true)
                         } else {
-                            result.success(false)
+                            result.success(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                         }
                     }
                     "setupPiP" -> {
+                        // Arm isInCall so onUserLeaveHint enters PiP on first press.
+                        // No setAutoEnterEnabled — see enterPiP comment above.
                         isInCall = true
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val params = PictureInPictureParams.Builder()
-                                .setAspectRatio(Rational(9, 16))
-                                .setAutoEnterEnabled(true)
-                                .build()
-                            setPictureInPictureParams(params)
-                        }
                         result.success(true)
                     }
                     "dispose" -> {
                         isInCall = false
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val params = PictureInPictureParams.Builder()
-                                .setAutoEnterEnabled(false)
-                                .build()
-                            setPictureInPictureParams(params)
-                        }
                         result.success(true)
                     }
                     else -> result.notImplemented()
@@ -101,6 +83,12 @@ class MainActivity : FlutterActivity() {
 
     override fun onPictureInPictureModeChanged(isInPip: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPip, newConfig)
+        if (isInPip) {
+            // Force the compositor to redraw the view hierarchy into the PiP surface.
+            // On Samsung One UI, the TextureView hardware layer can be stale on the
+            // 2nd+ PiP cycle. postInvalidate() queues a redraw from the UI thread.
+            window.decorView.postInvalidate()
+        }
         notifyPipState(isInPip)
     }
 
@@ -120,9 +108,10 @@ class MainActivity : FlutterActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (isInCall && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            // Android 12+ uses setAutoEnterEnabled — no manual call needed
+        // Manual PiP entry for ALL Android O+ versions (including Android 12+).
+        // Previously Android 12+ relied on setAutoEnterEnabled, but that races with
+        // Flutter's manual enterPiP call → double-trigger → white PiP on 2nd cycle.
+        if (isInCall && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isInPictureInPictureMode) {
             val params = PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(9, 16))
                 .build()

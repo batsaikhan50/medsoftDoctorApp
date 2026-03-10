@@ -214,16 +214,17 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
       await room.localParticipant?.setCameraEnabled(_camEnabled);
       await room.localParticipant?.setMicrophoneEnabled(_micEnabled);
 
-      // Setup native PiP display layer + feed remote track if already present
-      if (Platform.isIOS) {
-        try {
-          await _pipChannel.invokeMethod('setupPiP');
-          // If remote participants already exist, start feeding frames immediately
-          if (room.remoteParticipants.isNotEmpty) {
-            await _feedRemoteTrackToNative();
-          }
-        } catch (_) {}
-      }
+      // Setup native PiP.
+      // iOS: initialises AVPictureInPictureController and feeds remote track.
+      // Android: sets isInCall=true on native side so onUserLeaveHint can
+      //          enter PiP on the very first Home-press (before any lifecycle
+      //          inactive event fires from Flutter).
+      try {
+        await _pipChannel.invokeMethod('setupPiP');
+        if (Platform.isIOS && room.remoteParticipants.isNotEmpty) {
+          await _feedRemoteTrackToNative();
+        }
+      } catch (_) {}
     } catch (e) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('active_call_token');
