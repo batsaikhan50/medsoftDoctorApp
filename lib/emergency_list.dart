@@ -183,9 +183,9 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
         setState(() => isLoading = false);
       }
 
-      // if (response.statusCode == 401 || response.statusCode == 403) {
-      //   _logOut();
-      // }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        _logOut();
+      }
     }
   }
 
