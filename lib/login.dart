@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:medsoft_doctor/api/auth_dao.dart';
+import 'package:medsoft_doctor/api/base_dao.dart';
 import 'package:medsoft_doctor/claim_qr.dart';
 import 'package:medsoft_doctor/main.dart';
 import 'package:medsoft_doctor/webview_screen.dart';
@@ -135,44 +136,25 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _fetchServerData() async {
-    // 1. Call the DAO function
     final result = await _authDao.getHospitals();
 
     if (!mounted) return;
 
     setState(() {
-      // 2. Check for overall success (HTTP 200, and API 'success': true)
       if (result.success && result.data != null) {
-        // 3. Map the List<dynamic> data into the required List<Map<String, String>> format
-        final List<Map<String, String>> serverNames = result.data!
-            .whereType<Map<String, dynamic>>() // Ensure we only process maps
-            .map<Map<String, String>>((server) {
-              return {
+        _serverNames = result.data!
+            .whereType<Map<String, dynamic>>()
+            .map<Map<String, String>>(
+              (server) => {
                 'name': server['name']?.toString() ?? '',
                 'fullName': server['fullName']?.toString() ?? '',
                 'domain': server['domain']?.toString() ?? '',
-              };
-            })
+              },
+            )
             .toList();
-
-        _serverNames = serverNames;
-        _errorMessage = ''; // Clear any previous error
+        _errorMessage = '';
       } else {
-        // 4. Handle error cases
-        final String statusDetail = result.statusCode != null
-            ? ' (Статус: ${result.statusCode})'
-            : '';
-
-        if (result.statusCode == 200) {
-          // API returned success: false (handled by result.message)
-          _errorMessage = result.message ?? 'Эмнэлгүүдийг дуудах үйлдэл амжилтгүй боллоо.';
-        } else if (result.message?.contains('Invalid response format') == true) {
-          // Network/parsing error (handled by DAO's catch block)
-          _errorMessage = 'Алдаа гарлаа: ${result.message}';
-        } else {
-          // HTTP error (non-200) or other generic failure
-          _errorMessage = 'Серверийн мэдээлэл авахад алдаа гарлаа$statusDetail.';
-        }
+        _errorMessage = result.message ?? 'Алдаа гарлаа. Дахин оролдоно уу.';
       }
     });
   }
@@ -402,6 +384,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       }
     } catch (e) {
       debugPrint('Error calling wait API: $e');
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Серверт холбогдоход алдаа гарлаа.';
+        _isLoading = false;
+      });
     }
   }
 
@@ -438,75 +425,59 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     //   headers: headers,
     //   body: json.encode(body),
     // );
-    final response = await _authDao.login(body);
+    final ApiResponse<Map<String, dynamic>> response;
+    try {
+      response = await _authDao.login(body);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Серверт холбогдоход алдаа гарлаа.';
+        _isLoading = false;
+      });
+      return;
+    }
 
     debugPrint('Response Status: ${response.statusCode}');
     debugPrint('Response Body: ${response.data}');
     debugPrint('Response Message: ${response.message}');
 
+    if (!mounted) return;
+
     if (response.success && response.data != null) {
       if (!(Platform.environment['SIMULATOR_DEVICE_NAME'] == 'iPhone SE (3rd generation)')) {
         FlutterAppBadger.removeBadge();
-      } else {}
+      }
 
       final Map<String, dynamic> data = response.data!;
-      debugPrint('DATA SUCCESS: ${response.success}');
-      if (response.success == true) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-
-        // await prefs.setString('X-Tenant', _selectedRole?['name'] ?? '');
-        await prefs.setBool('isLoggedIn', true);
-
-        final String token = data['token'];
-
-        // await prefs.setString('X-Tenant', _selectedRole?['name'] ?? '');
-        await prefs.setString('tenantDomain', _selectedRole?['domain'] ?? '');
-        await prefs.setString('X-Medsoft-Token', token);
-
-        debugPrint('Username controller: ${_usernameLoginController.text}');
-        await prefs.setString('Username', _usernameLoginController.text);
-
-        await prefs.setString('employee', jsonEncode(response.data!['user']['employee']));
-        debugPrint('PREPS EMPLOYEE: ${prefs.getString('employee') ?? "No employee data"}');
-
-        _loadSharedPreferencesData();
-
-        final savedToken = await getSavedToken();
-        if (savedToken != null) {
-          debugPrint("INMY LOGIN'S if savedToken: $savedToken");
-          await callWaitApi(context, savedToken);
-          return;
-        }
-
-        _isLoading = false;
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MyHomePage(title: 'Дуудлагын жагсаалт')),
-        );
-      } else {
-        setState(() {
-          _errorMessage = 'Нэвтрэхэд амжилтгүй боллоо: ${response.message}';
-          _isLoading = false;
-        });
-      }
-    } else {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isLoggedIn', false);
+
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setString('tenantDomain', _selectedRole?['domain'] ?? '');
+      await prefs.setString('X-Medsoft-Token', data['token']);
+      await prefs.setString('Username', _usernameLoginController.text);
+      await prefs.setString('employee', jsonEncode(data['user']['employee']));
+
+      _loadSharedPreferencesData();
+
+      final savedToken = await getSavedToken();
+      if (!mounted) return;
+      if (savedToken != null) {
+        await callWaitApi(context, savedToken);
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MyHomePage(title: 'Дуудлагын жагсаалт')),
+      );
+    } else {
       setState(() {
-        _errorMessage = 'Нэвтрэх нэр эсвэл нууц үг буруу байна. Дахин оролдоно уу.';
+        _errorMessage = response.message ?? 'Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.';
         _isLoading = false;
       });
     }
-    // } catch (e) {
-    //   setState(() {
-    //     _errorMessage = 'Алдаа гарлаа: $e';
-    //     _isLoading = false;
-    //   });
-    // }
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   Future<void> _loadSharedPreferencesData() async {
@@ -1054,7 +1025,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 if (_errorMessage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(_errorMessage, style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      _errorMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
 
                 if (_selectedToggleIndex == 0)

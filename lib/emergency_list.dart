@@ -129,22 +129,7 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
       setState(() => isLoading = true);
     }
 
-    // final prefs = await SharedPreferences.getInstance();
-    // final token = prefs.getString('X-Medsoft-Token') ?? '';
-    // final server = prefs.getString('X-Tenant') ?? '';
-
-    // final uri = Uri.parse('${Constants.appUrl}/room/get/driver');
-
-    // final headers = {
-    //   'Authorization': 'Bearer $token',
-    //   'X-Medsoft-Token': token,
-    //   'X-Tenant': server,
-    //   'X-Token': Constants.xToken,
-    // };
-
-    // final response = await http.get(uri, headers: headers);
     final body = ["Opened", "Closed"];
-
     String dateFrom =
         "${_dateFrom.year}.${_dateFrom.month.toString().padLeft(2, '0')}.${_dateFrom.day.toString().padLeft(2, '0')}";
     String dateTo =
@@ -152,39 +137,25 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
 
     final response = await _mapDAO.getPatientsListEmergency(body, dateFrom, dateTo);
 
-    if (response.statusCode == 200) {
-      final json = response.data;
-      // const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+    if (!mounted) return;
 
-      // final String prettyJson = response.data != null ? encoder.convert(response.data) : 'null';
+    if (response.statusCode == 401) {
+      _logOut();
+      return;
+    }
 
-      //       final String fullLogMessage =
-      //           '''
-      // ############################################
-      // ### FULL API RESPONSE (waitQR) ###
-
-      // Status Code: ${response.statusCode}
-      // Success: ${response.success}
-      // Message: ${response.message}
-      // --- Data (Pretty JSON) ---
-      // $prettyJson
-      // ############################################
-      // ''';
-      // debugPrint(fullLogMessage, wrapWidth: 1024);
-      if (response.success == true) {
-        setState(() {
-          patients = json as List;
-          _filterPatients();
-          isLoading = false;
-        });
-      }
+    if (response.success == true) {
+      setState(() {
+        patients = response.data as List;
+        _filterPatients();
+        isLoading = false;
+      });
     } else {
-      if (initialLoad) {
-        setState(() => isLoading = false);
-      }
-
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        _logOut();
+      if (initialLoad) setState(() => isLoading = false);
+      if (response.message != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.message!)),
+        );
       }
     }
   }
@@ -263,11 +234,7 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
         padding: const EdgeInsets.all(5),
         child: ElevatedButton.icon(
           icon: const Icon(Icons.remove_red_eye, size: 18),
-          label: Text(
-            "Үзлэг",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: buttonFontSize),
-          ),
+          label: Text("Үзлэг", style: TextStyle(fontSize: buttonFontSize)),
           onPressed: emergencyRequestId != null
               ? () {
                   Navigator.push(
@@ -614,12 +581,8 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
       child: Padding(
         padding: const EdgeInsets.all(5),
         child: ElevatedButton.icon(
-          icon: const Icon(Icons.medication, size: 18), // Used a relevant icon
-          label: Text(
-            "Эм",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: buttonFontSize),
-          ),
+          icon: const Icon(Icons.medication, size: 18),
+          label: Text("Эм", style: TextStyle(fontSize: buttonFontSize)),
           onPressed: emergencyRequestId != null
               ? () {
                   Navigator.push(
@@ -893,15 +856,8 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
                           final isExpanded = _expandedTiles.contains(index);
 
                           final screenWidth = MediaQuery.of(context).size.width;
-                          // Define the threshold for "narrow screen" (iPhone portrait)
-                          final isNarrowScreen = screenWidth < 500;
                           // Define the threshold for "wide screen" (iPad/Landscape) for font size
                           final isWideScreen = screenWidth >= 600;
-
-                          // Set alignment: start for narrow, end for wide
-                          final mainAxisAlignment = isNarrowScreen
-                              ? MainAxisAlignment.start
-                              : MainAxisAlignment.center;
 
                           // Set font size: smaller for the tight narrow screen layout
                           final buttonFontSize = isWideScreen ? 16.0 : 11.5;
@@ -971,65 +927,27 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
                                         //     maxLines: 1,
                                         //   ),
                                         const SizedBox(height: 8),
-                                        Padding(
-                                          padding: EdgeInsets.only(
-                                            right: isNarrowScreen ? 0 : 100.0,
-                                          ),
-                                          child: SingleChildScrollView(
-                                            scrollDirection: Axis.horizontal,
-                                            child: Row(
-                                              mainAxisAlignment: mainAxisAlignment,
-                                              children: [
-                                                // Button 1: Үзлэг (40% on narrow, content-sized on wide)
-                                                SizedBox(
-                                                  width:
-                                                      120, // Increased fixed width for bigger buttons
-                                                  child: _buildUzlegButton(
-                                                    context,
-                                                    emergencyRequestId,
-                                                    xMedsoftToken,
-                                                    buttonFontSize,
-                                                  ),
-                                                ),
-
-                                                //   const SizedBox(width: 8),
-
-                                                //   // Button 2: Баталгаажуулах (60% on narrow, content-sized on wide)
-                                                //   isNarrowScreen
-                                                //       ? Expanded(
-                                                //           flex: 6,
-                                                //           child: _buildBatalgaajuulahButton(
-                                                //             context,
-                                                //             patient,
-                                                //             arrived,
-                                                //             buttonFontSize,
-                                                //           ),
-                                                //         )
-                                                //       : Expanded(
-                                                //           flex: 5,
-                                                //           child: _buildBatalgaajuulahButton(
-                                                //             context,
-                                                //             patient,
-                                                //             arrived,
-                                                //             buttonFontSize,
-                                                //           ),
-                                                //         ),
-
-                                                // Button 3: Эм
-                                                // REMOVED Expanded, ADDED SizedBox with fixed width
-                                                SizedBox(
-                                                  width:
-                                                      100, // Increased fixed width for bigger buttons
-                                                  child: _buildEmButton(
-                                                    context,
-                                                    emergencyRequestId,
-                                                    xMedsoftToken,
-                                                    buttonFontSize,
-                                                  ),
-                                                ),
-                                              ],
+                                        _ScrollableButtonRow(
+                                          children: [
+                                            SizedBox(
+                                              width: 120,
+                                              child: _buildUzlegButton(
+                                                context,
+                                                emergencyRequestId,
+                                                xMedsoftToken,
+                                                buttonFontSize,
+                                              ),
                                             ),
-                                          ),
+                                            SizedBox(
+                                              width: 100,
+                                              child: _buildEmButton(
+                                                context,
+                                                emergencyRequestId,
+                                                xMedsoftToken,
+                                                buttonFontSize,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -1143,6 +1061,73 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ScrollableButtonRow extends StatefulWidget {
+  final List<Widget> children;
+  const _ScrollableButtonRow({required this.children});
+
+  @override
+  State<_ScrollableButtonRow> createState() => _ScrollableButtonRowState();
+}
+
+class _ScrollableButtonRowState extends State<_ScrollableButtonRow> {
+  final ScrollController _scrollController = ScrollController();
+  bool _leftFade = false;
+  bool _rightFade = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_checkGradient);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkGradient());
+  }
+
+  void _checkGradient() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    final noOverflow = pos.maxScrollExtent <= 0;
+    final newLeft = !noOverflow && pos.extentBefore > 1.0;
+    final newRight = !noOverflow && pos.extentAfter > 1.0;
+    if (newLeft != _leftFade || newRight != _rightFade) {
+      setState(() {
+        _leftFade = newLeft;
+        _rightFade = newRight;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+    final scrollView = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      controller: _scrollController,
+      child: Row(children: widget.children),
+    );
+    if (isTablet) return scrollView;
+    return ShaderMask(
+      shaderCallback: (bounds) => LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [
+          _leftFade ? Colors.transparent : Colors.white,
+          Colors.white,
+          Colors.white,
+          _rightFade ? Colors.transparent : Colors.white,
+        ],
+        stops: const [0.0, 0.15, 0.85, 1.0],
+      ).createShader(bounds),
+      blendMode: BlendMode.dstIn,
+      child: scrollView,
     );
   }
 }

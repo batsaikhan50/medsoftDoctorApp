@@ -82,34 +82,30 @@ class PatientListScreenState extends State<PatientListScreen> {
 
   Future<void> fetchPatients({bool initialLoad = false}) async {
     if (!mounted) return;
-    if (initialLoad && mounted) {
+    if (initialLoad) {
       setState(() => isLoading = true);
-    } // Exit if the widget is disposed
-    try {
-      final response = await _mapDAO.getPatientsListAmbulance();
+    }
+    final response = await _mapDAO.getPatientsListAmbulance();
 
-      // Check mounted again after the asynchronous network call
-      if (!mounted) return;
+    if (!mounted) return;
 
-      if (response.success) {
-        final json = response.data!;
-        setState(() {
-          patients = json;
-          isLoading = false;
-        });
-      } else {
-        if (response.statusCode == 401 || response.statusCode == 403) {
-          _logOut();
-        }
-        if (initialLoad) {
-          setState(() => isLoading = false);
-        }
+    if (response.success) {
+      final json = response.data!;
+      setState(() {
+        patients = json;
+        filteredPatients = json;
+        isLoading = false;
+      });
+    } else {
+      if (response.statusCode == 401) {
+        _logOut();
+        return;
       }
-    } catch (e) {
-      // Handle the SocketException to prevent the app from crashing
-      debugPrint("Network error: $e");
-      if (initialLoad && mounted) {
-        setState(() => isLoading = false);
+      if (initialLoad) setState(() => isLoading = false);
+      if (response.message != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.message!)),
+        );
       }
     }
   }
@@ -191,11 +187,7 @@ class PatientListScreenState extends State<PatientListScreen> {
         padding: const EdgeInsets.all(5),
         child: ElevatedButton.icon(
           icon: const Icon(Icons.remove_red_eye, size: 18),
-          label: Text(
-            "Үзлэг",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: buttonFontSize),
-          ),
+          label: Text("Үзлэг", style: TextStyle(fontSize: buttonFontSize)),
           onPressed: roomId != null
               ? () {
                   Navigator.push(
@@ -229,11 +221,7 @@ class PatientListScreenState extends State<PatientListScreen> {
         padding: const EdgeInsets.all(5),
         child: ElevatedButton.icon(
           icon: const Icon(Icons.check_circle, size: 18),
-          label: Text(
-            "Баталгаажуулах",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: buttonFontSize),
-          ),
+          label: Text("Баталгаажуулах", style: TextStyle(fontSize: buttonFontSize)),
           onPressed: arrived
               ? () async {
                   if (roomId == null || phone == null) {
@@ -295,38 +283,33 @@ class PatientListScreenState extends State<PatientListScreen> {
                               onPressed: () async {
                                 Navigator.of(dialogContext).pop();
 
-                                try {
-                                  final response = await _mapDAO.requestDoneByApp(roomId);
+                                final response = await _mapDAO.requestDoneByApp(roomId);
 
-                                  if (!mounted) return; // ✅ Added mounted check
+                                if (!rootContext.mounted) return;
 
-                                  if (response.statusCode == 401 || // ✅ Added 401/403 check
-                                      response.statusCode == 403) {
-                                    _logOut();
-                                    return;
-                                  }
+                                if (response.statusCode == 401) {
+                                  _logOut();
+                                  return;
+                                }
 
-                                  if (response.success == true) {
-                                    ScaffoldMessenger.of(rootContext).showSnackBar(
-                                      const SnackBar(
-                                        backgroundColor: Colors.green,
-                                        content: Text(
-                                          'Иргэний апп руу хүсэлт илгээгдлээ',
-                                          style: TextStyle(color: Colors.white),
-                                        ),
+                                if (response.success == true) {
+                                  ScaffoldMessenger.of(rootContext).showSnackBar(
+                                    const SnackBar(
+                                      backgroundColor: Colors.green,
+                                      content: Text(
+                                        'Иргэний апп руу хүсэлт илгээгдлээ',
+                                        style: TextStyle(color: Colors.white),
                                       ),
-                                    );
-                                  } else {
-                                    ScaffoldMessenger.of(rootContext).showSnackBar(
-                                      SnackBar(content: Text('Амжилтгүй: ${response.statusCode}')),
-                                    );
-                                  }
-                                } catch (e) {
-                                  debugPrint('API error: $e');
-                                  if (!mounted) return; // ✅ Added mounted check
-                                  ScaffoldMessenger.of(
-                                    rootContext,
-                                  ).showSnackBar(const SnackBar(content: Text('Алдаа гарлаа')));
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(rootContext).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        response.message ?? 'Алдаа гарлаа. Дахин оролдоно уу.',
+                                      ),
+                                    ),
+                                  );
                                 }
                               },
                               child: const Text(
@@ -361,135 +344,104 @@ class PatientListScreenState extends State<PatientListScreen> {
                               onPressed: () async {
                                 Navigator.of(dialogContext).pop();
 
-                                try {
-                                  final response = await _mapDAO.requestDoneByOTP(roomId);
+                                final response = await _mapDAO.requestDoneByOTP(roomId);
 
-                                  if (!mounted) return;
+                                if (!rootContext.mounted) return;
 
-                                  if (response.statusCode == 401 || // ✅ Added 401/403 check
-                                      response.statusCode == 403) {
-                                    _logOut();
-                                    return;
-                                  }
+                                if (response.statusCode == 401) {
+                                  _logOut();
+                                  return;
+                                }
 
-                                  if (response.success == true) {
-                                    ScaffoldMessenger.of(rootContext).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Иргэний утас руу OTP илгээгдлээ'),
-                                      ),
-                                    );
+                                if (response.success == true) {
+                                  ScaffoldMessenger.of(rootContext).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Иргэний утас руу OTP илгээгдлээ'),
+                                    ),
+                                  );
 
-                                    final TextEditingController otpController =
-                                        TextEditingController();
+                                  final TextEditingController otpController =
+                                      TextEditingController();
 
-                                    showDialog(
-                                      context: rootContext,
-                                      barrierDismissible: false,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: const Text('OTP оруулах'),
-                                          content: TextField(
-                                            controller: otpController,
-                                            keyboardType: TextInputType.number,
-                                            maxLength: 6,
-                                            decoration: const InputDecoration(
-                                              hintText: '6 оронтой OTP',
-                                              counterText: '',
-                                            ),
+                                  showDialog(
+                                    context: rootContext,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('OTP оруулах'),
+                                        content: TextField(
+                                          controller: otpController,
+                                          keyboardType: TextInputType.number,
+                                          maxLength: 6,
+                                          decoration: const InputDecoration(
+                                            hintText: '6 оронтой OTP',
+                                            counterText: '',
                                           ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                              },
-                                              child: const Text('Буцах'),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () async {
-                                                final otp = otpController.text.trim();
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('Буцах'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () async {
+                                              final otp = otpController.text.trim();
 
-                                                if (otp.length == 6) {
-                                                  try {
-                                                    final doneResponse = await _mapDAO.doneByOTP({
-                                                      'roomId': roomId,
-                                                      'otp': otp,
-                                                    });
+                                              if (otp.length == 6) {
+                                                final doneResponse = await _mapDAO.doneByOTP({
+                                                  'roomId': roomId,
+                                                  'otp': otp,
+                                                });
 
-                                                    if (!mounted) return; // ✅ Added mounted check
+                                                if (!rootContext.mounted) return;
 
-                                                    if (doneResponse.statusCode ==
-                                                            401 || // ✅ Added 401/403 check
-                                                        doneResponse.statusCode == 403) {
-                                                      _logOut();
-                                                      return;
-                                                    }
+                                                if (doneResponse.statusCode == 401) {
+                                                  _logOut();
+                                                  return;
+                                                }
 
-                                                    if (doneResponse.success) {
-                                                      if (!mounted) return;
-                                                      Navigator.of(context).pop();
-                                                      ScaffoldMessenger.of(
-                                                        rootContext,
-                                                      ).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text(' Амжилттай баталгаажлаа'),
-                                                        ),
-                                                      );
-                                                    } else {
-                                                      if (!mounted) return;
-                                                      ScaffoldMessenger.of(
-                                                        rootContext,
-                                                      ).showSnackBar(
-                                                        SnackBar(
-                                                          content: Text(
-                                                            'OTP амжилтгүй: ${doneResponse.statusCode}',
-                                                          ),
-                                                        ),
-                                                      );
-                                                    }
-                                                  } catch (e) {
-                                                    debugPrint('Finalization error: $e');
-                                                    if (!mounted) return; // ✅ Added mounted check
-                                                    ScaffoldMessenger.of(rootContext).showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text(
-                                                          'Баталгаажуулах үед алдаа гарлаа',
-                                                        ),
-                                                      ),
-                                                    );
-                                                  }
-                                                } else {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                if (doneResponse.success) {
+                                                  if (!context.mounted) return;
+                                                  Navigator.of(context).pop();
+                                                  ScaffoldMessenger.of(rootContext).showSnackBar(
                                                     const SnackBar(
-                                                      content: Text('OTP 6 оронтой байх ёстой.'),
+                                                      content: Text('Амжилттай баталгаажлаа'),
+                                                    ),
+                                                  );
+                                                } else {
+                                                  ScaffoldMessenger.of(rootContext).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        doneResponse.message ??
+                                                            'OTP баталгаажуулалт амжилтгүй болсон.',
+                                                      ),
                                                     ),
                                                   );
                                                 }
-                                              },
-                                              child: const Text('Баталгаажуулах'),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  } else {
-                                    debugPrint(
-                                      'done_request_otp failed: ${response.statusCode} ${response.message}',
-                                    );
-                                    if (!mounted) return; // ✅ Added mounted check
-                                    ScaffoldMessenger.of(rootContext).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'OTP илгээх амжилтгүй: ${response.statusCode}',
-                                        ),
+                                              } else {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('OTP 6 оронтой байх ёстой.'),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            child: const Text('Баталгаажуулах'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(rootContext).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        response.message ?? 'OTP илгээхэд алдаа гарлаа.',
                                       ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  debugPrint('API error: $e');
-                                  if (!mounted) return; // ✅ Added mounted check
-                                  ScaffoldMessenger.of(
-                                    rootContext,
-                                  ).showSnackBar(const SnackBar(content: Text('Алдаа гарлаа')));
+                                    ),
+                                  );
                                 }
                               },
                               child: const Text(
@@ -533,11 +485,7 @@ class PatientListScreenState extends State<PatientListScreen> {
         padding: const EdgeInsets.all(5),
         child: ElevatedButton.icon(
           icon: const Icon(Icons.medication, size: 18),
-          label: Text(
-            "Эм",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: buttonFontSize),
-          ),
+          label: Text("Эм", style: TextStyle(fontSize: buttonFontSize)),
           onPressed: roomId != null
               ? () {
                   Navigator.push(
@@ -688,13 +636,7 @@ class PatientListScreenState extends State<PatientListScreen> {
 
                           final screenWidth = MediaQuery.of(context).size.width;
 
-                          final isNarrowScreen = screenWidth < 500;
-
                           final isWideScreen = screenWidth >= 600;
-
-                          final mainAxisAlignment = isNarrowScreen
-                              ? MainAxisAlignment.start
-                              : MainAxisAlignment.center;
 
                           final buttonFontSize = isWideScreen ? 16.0 : 11.5;
 
@@ -751,49 +693,36 @@ class PatientListScreenState extends State<PatientListScreen> {
                                               maxLines: 1,
                                             ),
                                           const SizedBox(height: 8),
-                                          Padding(
-                                            padding: const EdgeInsets.all(0),
-                                            child: SingleChildScrollView(
-                                              scrollDirection: Axis.horizontal,
-                                              child: Row(
-                                                mainAxisAlignment: mainAxisAlignment,
-                                                children: [
-                                                  SizedBox(
-                                                    width: isTablet ? 130 : 110,
-                                                    child: _buildUzlegButton(
-                                                      context,
-                                                      roomId,
-                                                      xMedsoftToken,
-                                                      buttonFontSize,
-                                                    ),
-                                                  ),
-
-                                                  const SizedBox(width: 0),
-
-                                                  SizedBox(
-                                                    width: isTablet ? 220 : 190,
-                                                    child: _buildBatalgaajuulahButton(
-                                                      context,
-                                                      patient,
-                                                      arrived,
-                                                      buttonFontSize,
-                                                    ),
-                                                  ),
-
-                                                  const SizedBox(width: 0),
-
-                                                  SizedBox(
-                                                    width: isTablet ? 110 : 100,
-                                                    child: _buildEmButton(
-                                                      context,
-                                                      roomId,
-                                                      xMedsoftToken,
-                                                      buttonFontSize,
-                                                    ),
-                                                  ),
-                                                ],
+                                          _ScrollableButtonRow(
+                                            children: [
+                                              SizedBox(
+                                                width: isTablet ? 130 : 110,
+                                                child: _buildUzlegButton(
+                                                  context,
+                                                  roomId,
+                                                  xMedsoftToken,
+                                                  buttonFontSize,
+                                                ),
                                               ),
-                                            ),
+                                              SizedBox(
+                                                width: isTablet ? 220 : 190,
+                                                child: _buildBatalgaajuulahButton(
+                                                  context,
+                                                  patient,
+                                                  arrived,
+                                                  buttonFontSize,
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width: isTablet ? 110 : 100,
+                                                child: _buildEmButton(
+                                                  context,
+                                                  roomId,
+                                                  xMedsoftToken,
+                                                  buttonFontSize,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -878,6 +807,73 @@ class PatientListScreenState extends State<PatientListScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ScrollableButtonRow extends StatefulWidget {
+  final List<Widget> children;
+  const _ScrollableButtonRow({required this.children});
+
+  @override
+  State<_ScrollableButtonRow> createState() => _ScrollableButtonRowState();
+}
+
+class _ScrollableButtonRowState extends State<_ScrollableButtonRow> {
+  final ScrollController _scrollController = ScrollController();
+  bool _leftFade = false;
+  bool _rightFade = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_checkGradient);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkGradient());
+  }
+
+  void _checkGradient() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    final noOverflow = pos.maxScrollExtent <= 0;
+    final newLeft = !noOverflow && pos.extentBefore > 1.0;
+    final newRight = !noOverflow && pos.extentAfter > 1.0;
+    if (newLeft != _leftFade || newRight != _rightFade) {
+      setState(() {
+        _leftFade = newLeft;
+        _rightFade = newRight;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+    final scrollView = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      controller: _scrollController,
+      child: Row(children: widget.children),
+    );
+    if (isTablet) return scrollView;
+    return ShaderMask(
+      shaderCallback: (bounds) => LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [
+          _leftFade ? Colors.transparent : Colors.white,
+          Colors.white,
+          Colors.white,
+          _rightFade ? Colors.transparent : Colors.white,
+        ],
+        stops: const [0.0, 0.15, 0.85, 1.0],
+      ).createShader(bounds),
+      blendMode: BlendMode.dstIn,
+      child: scrollView,
     );
   }
 }

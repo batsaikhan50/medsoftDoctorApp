@@ -17,12 +17,22 @@ class NewsFeedWidget extends StatelessWidget {
     return FutureBuilder(
       future: blogDAO.getAllNews(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Center(child: Text('Мэдээ татахад алдаа гарлаа.'));
+        }
+
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
         final response = snapshot.data!;
-        // Assuming response.data is a List<dynamic> of news items
+
+        if (!response.success) {
+          return Center(
+            child: Text(response.message ?? 'Мэдээ татахад алдаа гарлаа.'),
+          );
+        }
+
         final List<dynamic>? news = response.data;
 
         if (news == null || news.isEmpty) {
