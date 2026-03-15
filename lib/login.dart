@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:medsoft_doctor/api/auth_dao.dart';
-import 'package:medsoft_doctor/api/base_dao.dart';
 import 'package:medsoft_doctor/claim_qr.dart';
 import 'package:medsoft_doctor/main.dart';
 import 'package:medsoft_doctor/webview_screen.dart';
@@ -386,7 +385,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       debugPrint('Error calling wait API: $e');
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Серверт холбогдоход алдаа гарлаа.';
+        _errorMessage = 'Алдаа гарлаа. Дахин оролдоно уу.';
         _isLoading = false;
       });
     }
@@ -425,17 +424,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     //   headers: headers,
     //   body: json.encode(body),
     // );
-    final ApiResponse<Map<String, dynamic>> response;
-    try {
-      response = await _authDao.login(body);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Серверт холбогдоход алдаа гарлаа.';
-        _isLoading = false;
-      });
-      return;
-    }
+    final response = await _authDao.login(body);
 
     debugPrint('Response Status: ${response.statusCode}');
     debugPrint('Response Body: ${response.data}');
@@ -474,7 +463,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       );
     } else {
       setState(() {
-        _errorMessage = response.message ?? 'Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.';
+        _errorMessage = switch (response.statusCode) {
+          400 => 'Нэвтрэх нэр эсвэл нууц үг буруу байна.',
+          null => 'Интернэт холболтоо шалгана уу.',
+          _ => response.message ?? 'Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.',
+        };
         _isLoading = false;
       });
     }

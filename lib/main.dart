@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:medsoft_doctor/api/auth_dao.dart';
 import 'package:medsoft_doctor/claim_qr.dart';
@@ -23,8 +24,39 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _isOffline = false;
+  Timer? _connectivityTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+    _connectivityTimer = Timer.periodic(const Duration(seconds: 3), (_) => _checkConnectivity());
+  }
+
+  Future<void> _checkConnectivity() async {
+    try {
+      final socket = await Socket.connect('1.1.1.1', 53, timeout: const Duration(seconds: 2));
+      socket.destroy();
+      if (_isOffline && mounted) setState(() => _isOffline = false);
+    } catch (_) {
+      if (!_isOffline && mounted) setState(() => _isOffline = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivityTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +66,32 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
       routes: {'/call': (context) => const DoctorCallScreen()},
+      builder: (context, child) => Stack(
+        children: [
+          child!,
+          if (_isOffline)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Material(
+                color: Colors.transparent,
+                child: SafeArea(
+                  bottom: false,
+                  child: Container(
+                    color: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Интернэт холболтоо шалгана уу.',
+                      style: TextStyle(color: Colors.white, fontSize: 13, decoration: TextDecoration.none, fontFamily: 'Roboto'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
       home: FutureBuilder<Widget>(
         future: _getInitialScreen(),
         builder: (context, snapshot) {

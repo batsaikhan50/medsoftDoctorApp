@@ -138,7 +138,13 @@ class NewsFeedWidget extends StatelessWidget {
             }
 
             final response = snapshot.data!;
-            final item = response.data;
+            if (response.data == null) {
+              return SizedBox(
+                height: 200,
+                child: Center(child: Text(response.message ?? 'Алдаа гарлаа')),
+              );
+            }
+            final item = response.data!;
 
             return SingleChildScrollView(
               child: Column(

@@ -27,8 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final response = snapshot.data!;
           debugPrint('News response: ${response.message}');
-          if (response.data == null || response.data!.isEmpty) {
-            return const Center(child: Text("Мэдээ олдсонгүй"));
+          if (!response.success || response.data == null || response.data!.isEmpty) {
+            return Center(child: Text(response.message ?? "Мэдээ олдсонгүй"));
           }
 
           final news = response.data!;
@@ -129,7 +129,13 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             final response = snapshot.data!;
-            final item = response.data; // fixed: single object
+            if (response.data == null) {
+              return SizedBox(
+                height: 200,
+                child: Center(child: Text(response.message ?? 'Алдаа гарлаа')),
+              );
+            }
+            final item = response.data!;
 
             return SingleChildScrollView(
               child: Column(
