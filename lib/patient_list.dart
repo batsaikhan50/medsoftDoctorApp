@@ -103,9 +103,7 @@ class PatientListScreenState extends State<PatientListScreen> {
       }
       if (initialLoad) setState(() => isLoading = false);
       if (response.message != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message!)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response.message!)));
       }
     }
   }
@@ -180,7 +178,7 @@ class PatientListScreenState extends State<PatientListScreen> {
     double buttonFontSize,
   ) {
     final tenantDomain = sharedPreferencesData['tenantDomain'] ?? '';
-
+    debugPrint('Tenant Domain: $tenantDomain');
     return SizedBox(
       height: 48,
       child: Padding(

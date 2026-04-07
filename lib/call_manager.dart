@@ -41,6 +41,9 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
   int _videoRebuildToken = 0;
   int get videoRebuildToken => _videoRebuildToken;
 
+  // Room ID for create/join modes
+  String? _roomId;
+  String? get roomId => _roomId;
 
   // Platform channel for native PiP
   static const _pipChannel = MethodChannel('pip_channel');
@@ -81,7 +84,6 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-
   void setOnCallScreen(bool value) {
     _isOnCallScreen = value;
     if (value) {
@@ -112,14 +114,15 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     await [Permission.camera, Permission.microphone].request();
   }
 
-  Future<String> _getToken() async {
+  Future<String> _getToken({String? roomId}) async {
     final prefs = await SharedPreferences.getInstance();
     final username = prefs.getString('Username');
     if (username == null || username.isEmpty) {
       throw Exception('Username not found in SharedPreferences');
     }
+    final effectiveRoomId = roomId ?? 'testroom';
     final response = await http.get(
-      Uri.parse('${Constants.recordingUrl}/token?identity=$username&room=testroom'),
+      Uri.parse('${Constants.recordingUrl}/token?identity=$username&room=$effectiveRoomId'),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -130,12 +133,19 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> connect({String? existingToken}) async {
+  String _generateRoomId() {
+    final random = DateTime.now().millisecondsSinceEpoch % 900000 + 100000;
+    return random.toString();
+  }
+
+  Future<void> connect({String? existingToken, String? roomId}) async {
     _isConnecting = true;
+    // Generate room ID if not provided (create mode)
+    _roomId = roomId ?? _generateRoomId();
     notifyListeners();
     try {
       await _requestPermissions();
-      final token = existingToken ?? await _getToken();
+      final token = existingToken ?? await _getToken(roomId: _roomId);
       final room = Room(
         roomOptions: const RoomOptions(
           defaultCameraCaptureOptions: CameraCaptureOptions(

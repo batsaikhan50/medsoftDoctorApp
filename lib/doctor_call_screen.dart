@@ -18,6 +18,11 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   bool uiTest = false;
   int roomSize = 3;
 
+  // --- Create/Join Mode Variables ---
+  String? _mode; // 'create' or 'join'
+  String _joinRoomId = '';
+  String _joinError = '';
+  bool _isJoining = false;
 
   @override
   void initState() {
@@ -66,9 +71,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     // a blank feed from the new ImageTextureEntry during encoder reinit.
     final tile = GestureDetector(
       onTap: () {
-        _cm.setFocusedParticipant(
-          _cm.focusedParticipant == participant ? null : participant,
-        );
+        _cm.setFocusedParticipant(_cm.focusedParticipant == participant ? null : participant);
       },
       child: Container(
         margin: const EdgeInsets.all(2),
@@ -112,7 +115,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    "${participant.identity ?? (isLocal ? "You" : "User")}${trackPub?.isScreenShare == true ? " (Screen)" : ""}",
+                    "${isLocal ? "You" : participant.identity}${trackPub?.isScreenShare == true ? " (Screen)" : ""}",
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ),
@@ -176,23 +179,62 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: _cm.isInAndroidPip ? null : AppBar(
-        title: Text(uiTest ? 'UI TEST MODE ($roomSize)' : 'Doctor Portal'),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 18),
-      ),
+      appBar: _cm.isInAndroidPip
+          ? null
+          : AppBar(
+              title: Text(uiTest ? 'UI TEST MODE ($roomSize)' : 'Doctor Portal'),
+              backgroundColor: Colors.black,
+              iconTheme: const IconThemeData(color: Colors.white),
+              titleTextStyle: const TextStyle(color: Colors.white, fontSize: 18),
+            ),
       body: (_cm.room == null && !uiTest)
           ? _buildInitialUI()
           : SafeArea(
-              child: Column(
+              child: Stack(
                 children: [
-                  Expanded(
-                    child: _cm.focusedParticipant != null
-                        ? _buildZoomedView(allParticipants)
-                        : _buildDefaultLayout(allParticipants),
+                  Column(
+                    children: [
+                      Expanded(
+                        child: _cm.focusedParticipant != null
+                            ? _buildZoomedView(allParticipants)
+                            : _buildDefaultLayout(allParticipants),
+                      ),
+                      if (!_cm.isInAndroidPip) _buildControlBar(),
+                    ],
                   ),
-                  if (!_cm.isInAndroidPip) _buildControlBar(),
+                  // Room ID Display Overlay
+                  if (_cm.roomId != null)
+                    Positioned(
+                      top: 20,
+                      left: 20,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF5865F2).withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Room ID: ',
+                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                            Text(
+                              _cm.roomId!,
+                              style: const TextStyle(
+                                color: Color(0xFF5865F2),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -200,23 +242,161 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   }
 
   Widget _buildInitialUI() {
+    // Show join screen after join button is tapped
+    if (_mode == 'join' && !_isJoining) {
+      return Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1F22),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF333333)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Join Video Consultation',
+                style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Enter the 6-digit Room ID',
+                style: TextStyle(fontSize: 16, color: Color(0xFFDBDEE1)),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                maxLength: 6,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onChanged: (val) {
+                  setState(() {
+                    _joinRoomId = val;
+                    _joinError = '';
+                  });
+                },
+                style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 4),
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  hintText: '000000',
+                  hintStyle: const TextStyle(color: Color(0xFF999999)),
+                  filled: true,
+                  fillColor: const Color(0xFF2C2F33),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF5865F2), width: 2),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF5865F2), width: 2),
+                  ),
+                  counterText: '',
+                ),
+              ),
+              if (_joinError.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(_joinError, style: const TextStyle(color: Color(0xFFDA373C))),
+                ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _mode = null;
+                          _joinRoomId = '';
+                          _joinError = '';
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2C2F33),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Back', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _joinRoomId.length == 6
+                          ? () async {
+                              if (_joinRoomId.length != 6) {
+                                setState(() {
+                                  _joinError = 'Please enter a 6-digit room ID';
+                                });
+                                return;
+                              }
+                              setState(() => _isJoining = true);
+                              try {
+                                await _cm.connect(roomId: _joinRoomId);
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).showSnackBar(SnackBar(content: Text("Join Error: $e")));
+                                  setState(() => _isJoining = false);
+                                }
+                              }
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _joinRoomId.length == 6
+                            ? const Color(0xFF5865F2)
+                            : const Color(0xFF666666),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(_isJoining ? 'Joining...' : 'Join Room'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show creating state
+    if (_mode == 'create' && _cm.isConnecting) {
+      return const Center(child: CircularProgressIndicator(color: Colors.white));
+    }
+
+    // Show main menu with Create/Join buttons
     return Center(
-      child: _cm.isConnecting
-          ? const CircularProgressIndicator(color: Colors.white)
-          : ElevatedButton(
-              onPressed: () async {
-                try {
-                  await _cm.connect();
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Connect Error: $e")),
-                    );
-                  }
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await _cm.connect();
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("Connect Error: $e")));
                 }
-              },
-              child: const Text('Start Consultation'),
-            ),
+              }
+            },
+            child: const Text('Create Consultation'),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _mode = 'join';
+                _joinRoomId = '';
+                _joinError = '';
+              });
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[700]),
+            child: const Text('Join Consultation', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -319,43 +499,43 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildActionButton(
-            icon: _cm.micEnabled ? Icons.mic : Icons.mic_off,
-            color: _cm.micEnabled ? Colors.white24 : Colors.red,
-            onPressed: _cm.toggleMic,
-          ),
-          _buildActionButton(
-            icon: _cm.camEnabled ? Icons.videocam : Icons.videocam_off,
-            color: _cm.camEnabled ? Colors.white24 : Colors.red,
-            onPressed: _cm.toggleCam,
-          ),
-          _buildActionButton(
-            icon: Icons.flip_camera_ios,
-            color: Colors.white24,
-            onPressed: _cm.flipCamera,
-          ),
-          _buildActionButton(
-            icon: _cm.isRecording ? Icons.stop_circle : Icons.fiber_manual_record,
-            color: _cm.isRecording ? Colors.red : Colors.white24,
-            onPressed: _cm.toggleRecording,
-          ),
-          _buildActionButton(
-            icon: _cm.isScreenShared ? Icons.stop_screen_share : Icons.screen_share,
-            color: _cm.isScreenShared ? Colors.green : Colors.white24,
-            onPressed: _cm.toggleScreenShare,
-          ),
-          _buildActionButton(
-            icon: Icons.call_end,
-            color: Colors.red,
-            onPressed: () async {
-              await _cm.disconnect();
-              if (mounted) setState(() {});
-            },
-          ),
-        ],
-      ),
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildActionButton(
+              icon: _cm.micEnabled ? Icons.mic : Icons.mic_off,
+              color: _cm.micEnabled ? Colors.white24 : Colors.red,
+              onPressed: _cm.toggleMic,
+            ),
+            _buildActionButton(
+              icon: _cm.camEnabled ? Icons.videocam : Icons.videocam_off,
+              color: _cm.camEnabled ? Colors.white24 : Colors.red,
+              onPressed: _cm.toggleCam,
+            ),
+            _buildActionButton(
+              icon: Icons.flip_camera_ios,
+              color: Colors.white24,
+              onPressed: _cm.flipCamera,
+            ),
+            _buildActionButton(
+              icon: _cm.isRecording ? Icons.stop_circle : Icons.fiber_manual_record,
+              color: _cm.isRecording ? Colors.red : Colors.white24,
+              onPressed: _cm.toggleRecording,
+            ),
+            _buildActionButton(
+              icon: _cm.isScreenShared ? Icons.stop_screen_share : Icons.screen_share,
+              color: _cm.isScreenShared ? Colors.green : Colors.white24,
+              onPressed: _cm.toggleScreenShare,
+            ),
+            _buildActionButton(
+              icon: Icons.call_end,
+              color: Colors.red,
+              onPressed: () async {
+                await _cm.disconnect();
+                if (mounted) setState(() {});
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

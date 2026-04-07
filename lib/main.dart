@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_links/app_links.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'login.dart';
 
@@ -84,7 +85,12 @@ class _MyAppState extends State<MyApp> {
                     alignment: Alignment.center,
                     child: const Text(
                       'Интернэт холболтоо шалгана уу.',
-                      style: TextStyle(color: Colors.white, fontSize: 13, decoration: TextDecoration.none, fontFamily: 'Roboto'),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        decoration: TextDecoration.none,
+                        fontFamily: 'Roboto',
+                      ),
                     ),
                   ),
                 ),
@@ -231,8 +237,29 @@ class _MyHomePageState extends State<MyHomePage> {
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool('isLoggedIn') == true) {
         _initializeNotifications();
+        _checkAndRequestNotificationPermission();
       }
     });
+  }
+
+  Future<void> _checkAndRequestNotificationPermission() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    if (!isLoggedIn) {
+      debugPrint("User not logged in, skipping notification permission check");
+      return;
+    }
+
+    if (Platform.isAndroid) {
+      // Request notification permission on Android 13+
+      if (await Permission.notification.isDenied) {
+        await Permission.notification.request();
+      }
+    } else if (Platform.isIOS) {
+      // iOS permissions are requested in _initializeNotifications via DarwinInitializationSettings
+      debugPrint("iOS notification permissions handled by initialization settings");
+    }
   }
 
   Future<void> _loadSharedPreferencesData() async {
@@ -269,7 +296,26 @@ class _MyHomePageState extends State<MyHomePage> {
       iOS: initializationSettingsIOS,
     );
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: _handleNotificationResponse,
+    );
+
+    // Set up foreground notification handler for Android
+    if (Platform.isAndroid) {
+      flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    }
+  }
+
+  void _handleNotificationResponse(NotificationResponse response) {
+    debugPrint("Notification tapped with payload: ${response.payload}");
+    // Handle navigation or actions based on notification payload
+    if (response.payload != null && response.payload!.isNotEmpty) {
+      // Example: Navigate to specific screen based on payload
+      debugPrint("Handling notification payload: ${response.payload}");
+    }
   }
 
   void _logOut() async {
@@ -277,6 +323,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.clear();
+
+    // Cancel any pending notifications
+    await flutterLocalNotificationsPlugin.cancelAll();
 
     if (mounted) {
       Navigator.pushReplacement(
