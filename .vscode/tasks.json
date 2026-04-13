@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "suppress-codec-logs",
+            "type": "shell",
+            "command": "adb shell \"setprop log.tag.PipelineWatcher S; setprop log.tag.CCodec S; setprop log.tag.CCodecConfig S; setprop log.tag.CCodecBufferChannel S; setprop log.tag.CCodecBuffers S; setprop log.tag.C2NodeImpl S; setprop log.tag.GraphicBufferSource S; setprop log.tag.Codec2Client S; setprop log.tag.ColorUtils S; setprop log.tag.VQApply S; setprop log.tag.ReflectedParamUpdater S; setprop log.tag.BufferPoolAccessor2.0 S\"",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

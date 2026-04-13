@@ -63,7 +63,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     var trackPub = participant.videoTrackPublications.firstWhereOrNull((e) => e.isScreenShare);
     trackPub ??= participant.videoTrackPublications.firstOrNull;
 
-    final isMuted = isLocal ? !_cm.camEnabled : (trackPub?.muted ?? true);
+    final isMuted = trackPub?.muted ?? true;
 
     // Wrap remote tiles in KeyedSubtree so only the remote VideoTrackRenderer
     // (decoder) is rebuilt on EGL transitions. Rebuilding the local tile would

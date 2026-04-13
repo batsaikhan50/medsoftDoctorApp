@@ -21,6 +21,11 @@ class MainActivity : FlutterActivity() {
     private var isInCall = false
     private var pipChannel: MethodChannel? = null
 
+    // Android 14+ requires the foreground service with FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+    // to be started WITHIN the consent window (i.e. in onActivityResult after user taps Allow).
+    // Starting it before the dialog (as was done pre-Android 14) causes a SecurityException.
+    private var pendingScreenShare = false
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -28,15 +33,23 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startForeground" -> {
+                        // Start the service immediately on all versions.
+                        // On Android 14+, onStartCommand starts it without MEDIA_PROJECTION
+                        // type and we upgrade the type in onActivityResult (within the
+                        // user-consent window) before the Fragment's onActivityResult fires.
                         val intent = Intent(this, ScreenCaptureService::class.java)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             startForegroundService(intent)
                         } else {
                             startService(intent)
                         }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            pendingScreenShare = true
+                        }
                         result.success(true)
                     }
                     "stopForeground" -> {
+                        pendingScreenShare = false
                         stopService(Intent(this, ScreenCaptureService::class.java))
                         result.success(true)
                     }
@@ -79,6 +92,21 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    // On Android 14+, this fires BEFORE the Fragment's onActivityResult (which calls
+    // resultReceiver.send → getMediaProjection). We upgrade the foreground service type
+    // to MEDIA_PROJECTION here, synchronously within the user-consent window, so that
+    // getMediaProjection() sees a valid MEDIA_PROJECTION foreground service.
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            pendingScreenShare && resultCode == RESULT_OK) {
+            ScreenCaptureService.upgradeToMediaProjection()
+            pendingScreenShare = false
+        } else if (pendingScreenShare && resultCode != RESULT_OK) {
+            pendingScreenShare = false
+        }
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onPictureInPictureModeChanged(isInPip: Boolean, newConfig: Configuration) {
