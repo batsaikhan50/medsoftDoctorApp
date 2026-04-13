@@ -258,6 +258,15 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
           await BroadcastManager().requestStop();
         } catch (_) {}
       }
+      if (Platform.isAndroid) {
+        // Stop the foreground service and give MediaProjection/MediaCodec time
+        // to release native resources before room.disconnect() tears down WebRTC.
+        // Without this delay the MediaCodec encoder is freed while still active → native crash.
+        try {
+          await _screenCaptureChannel.invokeMethod('stopForeground');
+        } catch (_) {}
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
     }
     _isStartingScreenShare = false;
     await _room?.disconnect();
