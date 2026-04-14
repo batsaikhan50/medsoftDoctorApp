@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:webrtc_interface/webrtc_interface.dart';
 
 import 'utils.dart';
@@ -41,17 +42,21 @@ class CameraUtils {
   static Future<void> setFocusPoint(
       MediaStreamTrack videoTrack, Point<double>? point) async {
     if (WebRTC.platformIsAndroid || WebRTC.platformIsIOS) {
-      await WebRTC.invokeMethod(
-        'mediaStreamTrackSetFocusPoint',
-        <String, dynamic>{
-          'trackId': videoTrack.id,
-          'focusPoint': {
-            'reset': point == null,
-            'x': point?.x,
-            'y': point?.y,
+      try {
+        await WebRTC.invokeMethod(
+          'mediaStreamTrackSetFocusPoint',
+          <String, dynamic>{
+            'trackId': videoTrack.id,
+            'focusPoint': {
+              'reset': point == null,
+              'x': point?.x,
+              'y': point?.y,
+            },
           },
-        },
-      );
+        );
+      } on PlatformException catch (_) {
+        // Camera device may not be ready yet; ignore silently.
+      }
     } else {
       throw Exception('setFocusPoint only support for mobile devices!');
     }
@@ -75,17 +80,21 @@ class CameraUtils {
   static Future<void> setExposurePoint(
       MediaStreamTrack videoTrack, Point<double>? point) async {
     if (WebRTC.platformIsAndroid || WebRTC.platformIsIOS) {
-      await WebRTC.invokeMethod(
-        'mediaStreamTrackSetExposurePoint',
-        <String, dynamic>{
-          'trackId': videoTrack.id,
-          'exposurePoint': {
-            'reset': point == null,
-            'x': point?.x,
-            'y': point?.y,
+      try {
+        await WebRTC.invokeMethod(
+          'mediaStreamTrackSetExposurePoint',
+          <String, dynamic>{
+            'trackId': videoTrack.id,
+            'exposurePoint': {
+              'reset': point == null,
+              'x': point?.x,
+              'y': point?.y,
+            },
           },
-        },
-      );
+        );
+      } on PlatformException catch (_) {
+        // Camera device may not be ready yet; ignore silently.
+      }
     } else {
       throw Exception('setExposurePoint only support for mobile devices!');
     }

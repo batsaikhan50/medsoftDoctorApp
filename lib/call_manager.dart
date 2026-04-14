@@ -51,8 +51,8 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
 
   // Getters
   Room? get room => _room;
-  bool get micEnabled => _micEnabled;
-  bool get camEnabled => _camEnabled;
+  bool get micEnabled => _room?.localParticipant?.isMicrophoneEnabled() ?? _micEnabled;
+  bool get camEnabled => _room?.localParticipant?.isCameraEnabled() ?? _camEnabled;
   bool get isScreenShared => _isScreenShared;
   bool get isConnecting => _isConnecting;
   bool get isRecording => _isRecording;
@@ -280,6 +280,7 @@ class CallManager extends ChangeNotifier with WidgetsBindingObserver {
     _isScreenShared = false;
     _isRecording = false;
     _focusedParticipant = null;
+    _roomId = null;
     hidePip();
     try {
       await _pipChannel.invokeMethod('dispose');

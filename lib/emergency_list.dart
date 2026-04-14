@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:medsoft_doctor/api/map_dao.dart';
+import 'package:medsoft_doctor/call_manager.dart';
 import 'package:medsoft_doctor/login.dart';
 import 'package:medsoft_doctor/webview_screen.dart';
 import 'package:flutter/material.dart';
@@ -161,9 +162,14 @@ class EmergencyListScreenState extends State<EmergencyListScreen> {
   }
 
   void _logOut() async {
+    if (CallManager.instance.isConnected) {
+      await CallManager.instance.disconnect();
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.clear();
 
+    if (!mounted) return;
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
   }
 

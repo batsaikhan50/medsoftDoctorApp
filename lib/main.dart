@@ -321,6 +321,10 @@ class _MyHomePageState extends State<MyHomePage> {
   void _logOut() async {
     debugPrint("Entered _logOut");
 
+    if (CallManager.instance.isConnected) {
+      await CallManager.instance.disconnect();
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.clear();
 

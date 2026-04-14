@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:medsoft_doctor/api/map_dao.dart';
+import 'package:medsoft_doctor/call_manager.dart';
 import 'package:medsoft_doctor/login.dart';
 import 'package:medsoft_doctor/webview_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -109,6 +110,10 @@ class PatientListScreenState extends State<PatientListScreen> {
   }
 
   void _logOut() async {
+    if (CallManager.instance.isConnected) {
+      await CallManager.instance.disconnect();
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 

@@ -288,51 +288,33 @@ class PiPManager: NSObject, AVPictureInPictureControllerDelegate {
         print("PiPManager: Remote track set successfully")
     }
 
-    /// Fully tear down PiP controller before screen share to avoid
-    /// AVPictureInPictureController conflicting with ReplayKit broadcast extension.
+    /// Suppress auto-PiP during screen share.
+    /// We keep the PiP controller and renderer alive so the display layer
+    /// never goes black — we just disable auto-start so PiP doesn't fight
+    /// with the ReplayKit broadcast picker UI.
     func teardownForScreenShare() {
         isPiPSuppressed = true
         stopPiP()
-        // Detach renderer to reduce background work
-        if let track = remoteVideoTrack, let renderer = frameRenderer, isRendererAttached {
-            track.remove(renderer)
-            isRendererAttached = false
-        }
-        // Destroy the PiP controller entirely
-        pipController = nil
-        pipContentSource = nil
-        print("PiPManager: Torn down for screen share")
+        pipController?.canStartPictureInPictureAutomaticallyFromInline = false
+        print("PiPManager: PiP suppressed for screen share")
     }
 
-    /// Restore PiP controller after screen share ends.
+    /// Re-enable auto-PiP after screen share ends (or once screen share
+    /// is confirmed active so the user can PiP while sharing).
     func restoreAfterScreenShare() {
-        isPiPSuppressed = false
-
-        // Guard: don't recreate if controller already exists (prevents double-restore crash)
-        guard pipController == nil, let videoView = videoView else {
-            print("PiPManager: Restore skipped (already active or no view)")
+        guard isPiPSuppressed else {
+            print("PiPManager: Restore skipped (not suppressed)")
             return
         }
-
-        let source = AVPictureInPictureController.ContentSource(
-            sampleBufferDisplayLayer: videoView.sampleBufferLayer,
-            playbackDelegate: self
-        )
-        pipContentSource = source
-        pipController = AVPictureInPictureController(contentSource: source)
-        pipController?.delegate = self
+        isPiPSuppressed = false
         pipController?.canStartPictureInPictureAutomaticallyFromInline = true
-        if #available(iOS 16.0, *) {
-            pipController?.requiresLinearPlayback = true
-        }
-
-        // Re-attach renderer if we have a remote track
+        // Ensure renderer is attached and delivering frames
         if let track = remoteVideoTrack, let renderer = frameRenderer, !isRendererAttached {
-            renderer.frameSkip = 30  // idle
+            renderer.frameSkip = 30
             track.add(renderer)
             isRendererAttached = true
         }
-        print("PiPManager: Restored after screen share")
+        print("PiPManager: PiP restored after screen share")
     }
 
     /// Called from AppDelegate willResignActive

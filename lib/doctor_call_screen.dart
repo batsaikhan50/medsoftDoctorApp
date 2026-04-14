@@ -22,7 +22,6 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   String? _mode; // 'create' or 'join'
   String _joinRoomId = '';
   String _joinError = '';
-  bool _isJoining = false;
 
   @override
   void initState() {
@@ -39,11 +38,16 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
     _cm.removeListener(_onCallChanged);
     _cm.setOnCallScreen(false);
 
-    // Show PiP if still connected
     if (_cm.isConnected) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _cm.showPip();
-      });
+      if (_cm.isScreenShared) {
+        // Screen sharing active — keep call alive and show PiP
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _cm.showPip();
+        });
+      } else {
+        // Not screen sharing — disconnect immediately
+        _cm.disconnect();
+      }
     }
 
     // Reset orientations to default when leaving the call
@@ -115,7 +119,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    "${isLocal ? "You" : participant.identity}${trackPub?.isScreenShare == true ? " (Screen)" : ""}",
+                    "${isLocal ? "Та" : participant.identity}${trackPub?.isScreenShare == true ? " (Дэлгэц)" : ""}",
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ),
@@ -182,7 +186,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
       appBar: _cm.isInAndroidPip
           ? null
           : AppBar(
-              title: Text(uiTest ? 'UI TEST MODE ($roomSize)' : 'Doctor Portal'),
+              title: Text(uiTest ? 'UI TEST MODE ($roomSize)' : 'Эмчийн портал'),
               backgroundColor: Colors.black,
               iconTheme: const IconThemeData(color: Colors.white),
               titleTextStyle: const TextStyle(color: Colors.white, fontSize: 18),
@@ -218,7 +222,7 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text(
-                              'Room ID: ',
+                              'Өрөө: ',
                               style: TextStyle(color: Colors.white, fontSize: 16),
                             ),
                             Text(
@@ -242,126 +246,147 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
   }
 
   Widget _buildInitialUI() {
+    // Show loading while connecting (create or join)
+    if (_cm.isConnecting) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 16),
+            Text('Холбогдож байна...', style: TextStyle(color: Colors.white70)),
+          ],
+        ),
+      );
+    }
+
     // Show join screen after join button is tapped
-    if (_mode == 'join' && !_isJoining) {
+    if (_mode == 'join') {
       return Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1F22),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF333333)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              const Text(
-                'Join Video Consultation',
-                style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Enter the 6-digit Room ID',
-                style: TextStyle(fontSize: 16, color: Color(0xFFDBDEE1)),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                maxLength: 6,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (val) {
-                  setState(() {
-                    _joinRoomId = val;
-                    _joinError = '';
-                  });
-                },
-                style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 4),
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(
-                  hintText: '000000',
-                  hintStyle: const TextStyle(color: Color(0xFF999999)),
-                  filled: true,
-                  fillColor: const Color(0xFF2C2F33),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF5865F2), width: 2),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF5865F2), width: 2),
-                  ),
-                  counterText: '',
+              Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1F22),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF333333)),
                 ),
-              ),
-              if (_joinError.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(_joinError, style: const TextStyle(color: Color(0xFFDA373C))),
-                ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'JOIN VIDEO CALL',
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      '6 оронтой нууц дугаар оруулна уу',
+                      style: TextStyle(fontSize: 14, color: Color(0xFFDBDEE1)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      maxLength: 6,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (val) {
                         setState(() {
-                          _mode = null;
-                          _joinRoomId = '';
+                          _joinRoomId = val;
                           _joinError = '';
                         });
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2C2F33),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 4),
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        hintText: '000000',
+                        hintStyle: const TextStyle(color: Color(0xFF999999)),
+                        filled: true,
+                        fillColor: const Color(0xFF2C2F33),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF5865F2), width: 2),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFF5865F2), width: 2),
+                        ),
+                        counterText: '',
                       ),
-                      child: const Text('Back', style: TextStyle(color: Colors.white)),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _joinRoomId.length == 6
-                          ? () async {
-                              if (_joinRoomId.length != 6) {
-                                setState(() {
-                                  _joinError = 'Please enter a 6-digit room ID';
-                                });
-                                return;
-                              }
-                              setState(() => _isJoining = true);
-                              try {
-                                await _cm.connect(roomId: _joinRoomId);
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).showSnackBar(SnackBar(content: Text("Join Error: $e")));
-                                  setState(() => _isJoining = false);
+                    if (_joinError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Text(_joinError, style: const TextStyle(color: Color(0xFFDA373C))),
+                      ),
+                    if (_joinRoomId.length == 6) ...[
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _joinRoomId.length == 6
+                              ? () async {
+                                  try {
+                                    await _cm.connect(roomId: _joinRoomId);
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text("Нэгдэхэд алдаа гарлаа: $e")),
+                                      );
+                                    }
+                                  }
                                 }
-                              }
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _joinRoomId.length == 6
-                            ? const Color(0xFF5865F2)
-                            : const Color(0xFF666666),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _joinRoomId.length == 6
+                                ? const Color(0xFF5865F2)
+                                : const Color(0xFF666666),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text('Орох'),
+                        ),
                       ),
-                      child: Text(_isJoining ? 'Joining...' : 'Join Room'),
+                    ],
+                  ],
+                ),
+              ),
+              Positioned(
+                top: -16,
+                right: -16,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _mode = null;
+                      _joinRoomId = '';
+                      _joinError = '';
+                    });
+                  },
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF333333),
+                      shape: BoxShape.circle,
                     ),
+                    child: const Icon(Icons.close, color: Colors.white70, size: 20),
                   ),
-                ],
+                ),
               ),
             ],
           ),
         ),
       );
-    }
-
-    // Show creating state
-    if (_mode == 'create' && _cm.isConnecting) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white));
     }
 
     // Show main menu with Create/Join buttons
@@ -377,11 +402,14 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text("Connect Error: $e")));
+                  ).showSnackBar(SnackBar(content: Text("Холбогдоход алдаа гарлаа: $e")));
                 }
               }
             },
-            child: const Text('Create Consultation'),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [Icon(Icons.video_call, size: 20), SizedBox(width: 8), Text('CREATE')],
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -393,7 +421,14 @@ class _DoctorCallScreenState extends State<DoctorCallScreen> {
               });
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[700]),
-            child: const Text('Join Consultation', style: TextStyle(color: Colors.white)),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.video_call, size: 20, color: Colors.white),
+                SizedBox(width: 8),
+                Text('JOIN', style: TextStyle(color: Colors.white)),
+              ],
+            ),
           ),
         ],
       ),
