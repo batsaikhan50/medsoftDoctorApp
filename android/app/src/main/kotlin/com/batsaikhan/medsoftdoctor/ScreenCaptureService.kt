@@ -1,4 +1,4 @@
-package com.example.medsoft_doctor
+package com.batsaikhan.medsoftdoctor
 
 import android.app.Notification
 import android.app.NotificationChannel
