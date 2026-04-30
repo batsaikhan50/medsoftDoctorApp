@@ -349,6 +349,8 @@ class PatientListScreenState extends State<PatientListScreen> {
 
                                 final response = await _mapDAO.requestDoneByOTP(roomId);
 
+                                debugPrint('[DEBUG] OTP response: success=${response.success}, status=${response.statusCode}, msg=${response.message}, mounted=${rootContext.mounted}');
+
                                 if (!rootContext.mounted) return;
 
                                 if (response.statusCode == 401) {
@@ -356,7 +358,11 @@ class PatientListScreenState extends State<PatientListScreen> {
                                   return;
                                 }
 
-                                if (response.success == true) {
+                                final bool showOtpDialog = response.success == true ||
+                                    (response.message != null &&
+                                        response.message!.contains('Дуудлага дуусгах код илгээгдсэн байна'));
+
+                                if (showOtpDialog) {
                                   ScaffoldMessenger.of(rootContext).showSnackBar(
                                     const SnackBar(
                                       content: Text('Иргэний утас руу OTP илгээгдлээ'),

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:medsoft_doctor/api/base_dao.dart';
 import 'package:medsoft_doctor/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 //Байршил солилцох үйлдлийн DAO
 class MapDAO extends BaseDAO {
@@ -32,8 +34,10 @@ class MapDAO extends BaseDAO {
 
   //Үйлдэл дуусгах хүсэлт Апп-р явуулах
   Future<ApiResponse<void>> requestDoneByApp(String roomId) {
+    final url = '${Constants.appUrl}/done_request_app/?roomId=$roomId';
+    debugPrint('[DEBUG] requestDoneByOTP url: $url');
     return get<void>(
-      '${Constants.appUrl}/done_request_app/?roomId=$roomId',
+      '${Constants.appUrl}/room/done_request_app/?roomId=$roomId',
       config: const RequestConfig(
         headerType: HeaderType.xtokenAndTenantAndxmedsoftToken,
         excludeToken: false,
@@ -42,9 +46,14 @@ class MapDAO extends BaseDAO {
   }
 
   //Үйлдэл дуусгах хүсэлт OTP-р явуулах
-  Future<ApiResponse<void>> requestDoneByOTP(String roomId) {
+  Future<ApiResponse<void>> requestDoneByOTP(String roomId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tenant = prefs.getString('X-Tenant') ?? '';
+    final url = '${Constants.appUrl}/room/done_request_otp?roomId=$roomId';
+    debugPrint('[DEBUG] requestDoneByOTP url: $url');
+    debugPrint('[DEBUG] requestDoneByOTP X-Tenant: $tenant');
     return get<void>(
-      '${Constants.appUrl}/done_request_otp/?roomId=$roomId',
+      url,
       config: const RequestConfig(
         headerType: HeaderType.xtokenAndTenantAndxmedsoftToken,
         excludeToken: false,

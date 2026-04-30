@@ -178,11 +178,25 @@ abstract class BaseDAO {
     return headers;
   }
 
+  String _resolveMessage(String? apiMessage, int? statusCode) {
+    if (apiMessage != null &&
+        apiMessage.isNotEmpty &&
+        RegExp(r'[Ѐ-ӿ]').hasMatch(apiMessage)) {
+      return apiMessage;
+    }
+    return statusMessage(statusCode);
+  }
+
   ApiResponse<T> _handleResponse<T>(http.Response response, {T Function(dynamic)? parse}) {
     if (response.statusCode >= 400) {
+      String? apiMessage;
+      try {
+        final jsonBody = jsonDecode(response.body);
+        apiMessage = jsonBody['message']?.toString();
+      } catch (_) {}
       return ApiResponse<T>(
         success: false,
-        message: statusMessage(response.statusCode),
+        message: _resolveMessage(apiMessage, response.statusCode),
         statusCode: response.statusCode,
       );
     }
