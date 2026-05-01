@@ -1,4 +1,4 @@
-package com.batsaikhan.medsoftdoctor
+package com.medsoft.medsoftdoctor
 
 import android.app.PictureInPictureParams
 import android.content.Intent

@@ -7,4 +7,4 @@
 -keep class livekit.** { *; }
 
 # Keep app entry points
--keep class com.batsaikhan.medsoftdoctor.** { *; }
+-keep class com.medsoft.medsoftdoctor.** { *; }
